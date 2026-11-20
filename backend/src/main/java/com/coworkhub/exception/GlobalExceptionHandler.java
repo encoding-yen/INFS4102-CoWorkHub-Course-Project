@@ -1,0 +1,73 @@
+// Owner: Erin
+// What: Turns every exception into the ApiError JSON shape with the right status code.
+//       Controllers and services never build error responses themselves; they throw.
+// Checklist: missing id gives 404; missing required fields give 400 with a readable message;
+//            invalid operations return appropriate status codes and useful messages (brief 3.4).
+// Depends on: ApiError and the three exception classes (done).
+// Used by: every controller, including Amani's. Amani's 400/404/409 responses only work once this is done,
+//          so finish it early.
+
+package com.coworkhub.exception;
+
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ApiError> handleNotFound(NotFoundException exception) {
+        // TODO(Erin): Return status 404 with new ApiError(404, "Not Found", exception.getMessage()).
+        throw new UnsupportedOperationException("TODO(Erin): 404 handler");
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ApiError> handleConflict(ConflictException exception) {
+        // TODO(Erin): Return status 409 with new ApiError(409, "Conflict", exception.getMessage()).
+        throw new UnsupportedOperationException("TODO(Erin): 409 handler");
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ApiError> handleBadRequest(BadRequestException exception) {
+        // TODO(Erin): Return status 400 with new ApiError(400, "Bad Request", exception.getMessage()).
+        throw new UnsupportedOperationException("TODO(Erin): 400 handler");
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException exception) {
+        // TODO(Erin): A @Valid body failed. Join the field messages from exception.getBindingResult()
+        //             into one readable sentence and return 400.
+        throw new UnsupportedOperationException("TODO(Erin): validation handler");
+    }
+
+    @ExceptionHandler({
+        HttpMessageNotReadableException.class,
+        MethodArgumentTypeMismatchException.class,
+        MissingServletRequestParameterException.class
+    })
+    public ResponseEntity<ApiError> handleUnreadableRequest(Exception exception) {
+        // TODO(Erin): Broken JSON, a bad date such as "2026-13-40T99:00", an unknown enum such as type=CHAIR,
+        //             or a missing required query parameter such as start. Return 400 with a short message.
+        throw new UnsupportedOperationException("TODO(Erin): unreadable request handler");
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException exception) {
+        // TODO(Erin): The database refused a save, usually the unique email constraint.
+        //             Return 409 with "A member with this email already exists." or a general conflict message.
+        throw new UnsupportedOperationException("TODO(Erin): data integrity handler");
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiError> handleUnexpected(Exception exception) {
+        // TODO(Erin): Anything else. Return 500 with "Something went wrong while handling the request."
+        //             Do not send the Java stack trace to the client.
+        throw new UnsupportedOperationException("TODO(Erin): 500 handler");
+    }
+}
