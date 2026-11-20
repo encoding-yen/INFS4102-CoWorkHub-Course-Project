@@ -1,0 +1,7 @@
+# Owner: Yyan
+# What: Files Docker must not copy into the build. The image builds target/ itself.
+# TODO(Yyan): Keep this in sync with anything else generated locally.
+target/
+data/
+.idea/
+*.iml
