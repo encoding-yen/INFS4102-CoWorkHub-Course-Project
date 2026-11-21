@@ -17,7 +17,19 @@
 
 package com.coworkhub.booking;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
+    List<Booking> findByMember_Id(Long memberId);
+
+    // Is there a CONFIRMED booking on this resource with existingStart < newEnd AND existingEnd > newStart?
+    boolean existsByResource_IdAndStatusAndStartDateTimeBeforeAndEndDateTimeAfter(
+            Long resourceId, BookingStatus status, LocalDateTime newEnd, LocalDateTime newStart);
+
+    // Same check while editing, ignoring the booking being edited.
+    boolean existsByResource_IdAndStatusAndStartDateTimeBeforeAndEndDateTimeAfterAndIdNot(
+            Long resourceId, BookingStatus status, LocalDateTime newEnd, LocalDateTime newStart, Long bookingId);
 }
