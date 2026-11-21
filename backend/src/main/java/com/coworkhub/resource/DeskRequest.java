@@ -10,13 +10,24 @@
 
 package com.coworkhub.resource;
 
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
 public record DeskRequest(
+        @NotBlank(message = "Name is required.")
         String name,
+        @NotBlank(message = "Location is required.")
         String location,
+        @NotNull(message = "Capacity is required.")
+        @Min(value = 1, message = "Capacity must be at least 1.")
         Integer capacity,
+        @NotNull(message = "Hourly rate is required.")
+        @DecimalMin(value = "0.00", message = "Hourly rate must be zero or more.")
         BigDecimal hourlyRate,
         ResourceStatus status,
+        @NotBlank(message = "Desk type is required.")
         String deskType) {
 }

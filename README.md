@@ -4,7 +4,6 @@
 Owner: Yyan
 Checklist: README names every team member and gives the exact steps to start Docker,
            then run the Flutter desktop app on the host machine.
-TODO(Yyan): Fill every TODO below and test the steps on a machine without PostgreSQL installed.
 -->
 
 A desktop application for booking meeting rooms and desks in a coworking space.
@@ -12,14 +11,14 @@ Flutter desktop client, Spring Boot REST API, Spring Data JPA, PostgreSQL, Docke
 
 ## Team
 
-<!-- TODO(Yyan): Full names and student IDs. -->
-
-| Member | Part |
+| Member (ID) | Part |
 |---|---|
-| Erin | Backend foundation: entities, member and resource API, error handling |
-| Amani | Booking rules and endpoints |
-| Jassem | Flutter screens |
-| Yyan | HTTP client, Docker, README, report, submission |
+| Erin (60301179) | Backend foundation: entities, member and resource API, error handling |
+| Amani (60305749) | Booking rules and endpoints |
+| Jassem (60303214) | Flutter screens |
+| Yyan (60306991) | HTTP client, Docker, README, report, submission |
+
+Team name: Group 1
 
 ## Where things are
 
@@ -34,25 +33,43 @@ Flutter desktop client, Spring Boot REST API, Spring Data JPA, PostgreSQL, Docke
 
 ## Run the server with Docker
 
-<!-- TODO(Yyan): Exact commands once docker-compose.yml works. Expected shape: -->
+You need Docker Desktop (or Docker Engine with the Compose plugin). PostgreSQL and Java do not need to be installed.
 
 ```bash
-cp .env.example .env
+cp .env.example .env        # then open .env and replace change-me with your own password
 docker compose up --build
 ```
 
-<!-- TODO(Yyan): How to check it works, for example curl http://localhost:8080/api/resources returns a list.
-     How to stop it (docker compose down) and how the data survives a restart. -->
+The first build downloads Maven dependencies and takes a few minutes. The server is ready when the log shows `Started CoworkhubApplication`.
+
+Check it works:
+
+```bash
+curl http://localhost:8080/api/resources
+```
+
+It returns a JSON list (`[]` on a fresh database). API documentation: http://localhost:8080/swagger-ui.html
+
+Stop and restart without losing data:
+
+```bash
+docker compose down         # stops the containers; the named volume coworkhub-db-data keeps the data
+docker compose up           # the same members, resources, and bookings are still there
+```
+
+Never run `docker compose down -v`: `-v` deletes the volume and the data with it. The tables are created and updated by Hibernate with `ddl-auto=update`, which never drops existing rows.
 
 ## Run the desktop app
 
-<!-- TODO(Yyan): Exact steps. Expected shape: -->
+Start the server first (Docker above, or the development steps below). Then, on the host machine with Flutter installed:
 
 ```bash
 cd frontend
 flutter pub get
 flutter run -d macos   # or -d windows, or -d linux
 ```
+
+The app talks to `http://localhost:8080` through `lib/services/api_client.dart`. If the server is not running, screens show "Could not reach the server".
 
 ## Run the backend without Docker (development)
 

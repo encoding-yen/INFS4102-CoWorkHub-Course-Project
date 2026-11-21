@@ -7,9 +7,13 @@
 
 package com.coworkhub.resource;
 
+import com.coworkhub.exception.BadRequestException;
+import com.coworkhub.exception.ConflictException;
 import com.coworkhub.exception.NotFoundException;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ResourceService {
@@ -22,7 +26,13 @@ public class ResourceService {
 
     public List<BookableResource> findResources(ResourceFilter filter) {
         // TODO(Erin): Return every resource for which filter.matches(resource) is true.
-        throw new UnsupportedOperationException("TODO(Erin): ResourceService.findResources");
+        List<BookableResource> resources = new ArrayList<>();
+        for (BookableResource resource : resourceRepository.findAll()) {
+            if (filter.matches(resource)) {
+                resources.add(resource);
+            }
+        }
+        return resources;
     }
 
     public BookableResource findById(Long id) {
@@ -33,13 +43,34 @@ public class ResourceService {
 
     public MeetingRoom createRoom(RoomRequest request) {
         // TODO(Erin): Copy the request into a new MeetingRoom. Use ACTIVE when status is null. Save and return it.
-        throw new UnsupportedOperationException("TODO(Erin): ResourceService.createRoom");
+        MeetingRoom room = new MeetingRoom();
+        room.setName(request.name());
+        room.setLocation(request.location());
+        room.setCapacity(request.capacity());
+        room.setHourlyRate(request.hourlyRate());
+        if (request.status() != null) {
+            room.setStatus(request.status());
+        }
+        room.setHasVideoConference(request.hasVideoConference());
+        return resourceRepository.save(room);
     }
 
     public Desk createDesk(DeskRequest request) {
         // TODO(Erin): If capacity is not 1, throw new BadRequestException("A desk must have capacity 1.").
         //             Copy the request into a new Desk. Use ACTIVE when status is null. Save and return it.
-        throw new UnsupportedOperationException("TODO(Erin): ResourceService.createDesk");
+        if (request.capacity() == null || request.capacity() != 1) {
+            throw new BadRequestException("A desk must have capacity 1.");
+        }
+        Desk desk = new Desk();
+        desk.setName(request.name());
+        desk.setLocation(request.location());
+        desk.setCapacity(request.capacity());
+        desk.setHourlyRate(request.hourlyRate());
+        if (request.status() != null) {
+            desk.setStatus(request.status());
+        }
+        desk.setDeskType(request.deskType());
+        return resourceRepository.save(desk);
     }
 
     public BookableResource update(Long id, ResourceUpdateRequest request) {
@@ -49,9 +80,36 @@ public class ResourceService {
         // 3. If it is a MeetingRoom, hasVideoConference is required; if it is a Desk, deskType is required
         //    and capacity must stay 1. Wrong or missing subtype fields throw BadRequestException (400).
         // 4. Save and return it.
-        throw new UnsupportedOperationException("TODO(Erin): ResourceService.update");
+        BookableResource resource = findById(id);
+        if (resource instanceof MeetingRoom room) {
+            if (request.hasVideoConference() == null) {
+                throw new BadRequestException("Video conference availability is required.");
+            }
+            if (request.deskType() != null) {
+                throw new BadRequestException("A meeting room cannot have a desk type.");
+            }
+            room.setHasVideoConference(request.hasVideoConference());
+        } else if (resource instanceof Desk desk) {
+            if (request.deskType() == null || request.deskType().isBlank()) {
+                throw new BadRequestException("Desk type is required.");
+            }
+            if (request.hasVideoConference() != null) {
+                throw new BadRequestException("A desk cannot have video conference availability.");
+            }
+            if (request.capacity() == null || request.capacity() != 1) {
+                throw new BadRequestException("A desk must have capacity 1.");
+            }
+            desk.setDeskType(request.deskType());
+        }
+        resource.setName(request.name());
+        resource.setLocation(request.location());
+        resource.setCapacity(request.capacity());
+        resource.setHourlyRate(request.hourlyRate());
+        resource.setStatus(request.status());
+        return resourceRepository.save(resource);
     }
 
+    @Transactional
     public void delete(Long id) {
         // TODO(Erin):
         // 1. Load the resource with findById (404 if missing).
@@ -59,6 +117,10 @@ public class ResourceService {
         //    new ConflictException("This resource has bookings and cannot be deleted. Set it to OUT_OF_SERVICE instead.")
         //    Mark this method @Transactional so the bookings list can be read.
         // 3. Otherwise delete it.
-        throw new UnsupportedOperationException("TODO(Erin): ResourceService.delete");
+        BookableResource resource = findById(id);
+        if (!resource.getBookings().isEmpty()) {
+            throw new ConflictException("This resource has bookings and cannot be deleted. Set it to OUT_OF_SERVICE instead.");
+        }
+        resourceRepository.delete(resource);
     }
 }

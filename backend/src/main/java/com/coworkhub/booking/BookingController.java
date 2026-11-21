@@ -9,6 +9,7 @@
 package com.coworkhub.booking;
 
 import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/bookings")
@@ -32,20 +35,23 @@ public class BookingController {
 
     @GetMapping
     public List<BookingResponse> list(@RequestParam(required = false) Long memberId) {
-        // TODO(Amani): memberId null -> bookingService.findAll(); otherwise bookingService.findByMember(memberId).
-        throw new UnsupportedOperationException("TODO(Amani): GET /api/bookings");
+        // memberId null -> bookingService.findAll(); otherwise bookingService.findByMember(memberId).
+        if (memberId == null) {
+            return bookingService.findAll();
+        }
+        return bookingService.findByMember(memberId);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public BookingResponse create(@RequestBody BookingCreateRequest request) {
-        // TODO(Amani): Add @Valid before @RequestBody, then call bookingService.create.
-        throw new UnsupportedOperationException("TODO(Amani): POST /api/bookings");
+    public BookingResponse create(@Valid @RequestBody BookingCreateRequest request) {
+        // Add @Valid before @RequestBody, then call bookingService.create.
+        return bookingService.create(request);
     }
 
     @PutMapping("/{id}")
     public BookingResponse update(@PathVariable Long id, @RequestBody BookingUpdateRequest request) {
-        // TODO(Amani): Call bookingService.update. Status 200.
-        throw new UnsupportedOperationException("TODO(Amani): PUT /api/bookings/{id}");
+        // Call bookingService.update. Status 200.
+        return bookingService.update(id, request);
     }
 }

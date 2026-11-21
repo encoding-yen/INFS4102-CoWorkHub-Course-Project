@@ -2,6 +2,7 @@
 // What: The flat booking JSON every booking endpoint returns. See docs/API.md, section Bookings.
 //       Returning Booking directly would nest the whole member and resource. This record avoids that.
 // Depends on: Booking (done). Jassem's Booking model and Yyan's ApiClient read these exact field names.
+// BookingService calls from; the controller returns the service result without a second conversion.
 
 package com.coworkhub.booking;
 
@@ -21,8 +22,18 @@ public record BookingResponse(
         BigDecimal totalCost) {
 
     public static BookingResponse from(Booking booking) {
-        // TODO(Amani): Copy the fields. memberId and memberName come from booking.getMember();
+        // Copy the fields. memberId and memberName come from booking.getMember();
         //              resourceId and resourceName come from booking.getResource().
-        throw new UnsupportedOperationException("TODO(Amani): BookingResponse.from");
+        return new BookingResponse(
+                booking.getId(),
+                booking.getMember().getId(),
+                booking.getMember().getFullName(),
+                booking.getResource().getId(),
+                booking.getResource().getName(),
+                booking.getStartDateTime(),
+                booking.getEndDateTime(),
+                booking.getAttendees(),
+                booking.getStatus(),
+                booking.getTotalCost());
     }
 }

@@ -47,7 +47,7 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    // TODO(Jassem): Replace with a Scaffold that has a NavigationRail on the left and the selected screen on the right.
+    // TODO(Jassem): Add simple navigation, such as buttons or tabs, to select a screen.
     //               Destinations: Home, Resources, Members, New booking, Bookings.
     //               Screens: HomeScreen, ResourcesScreen, MembersScreen, NewBookingScreen, BookingsScreen.
     //               Pass widget.api to each one.

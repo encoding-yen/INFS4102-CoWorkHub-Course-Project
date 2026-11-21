@@ -41,9 +41,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException exception) {
-        // TODO(Erin): A @Valid body failed. Return 400 with a readable sentence.
-        return ResponseEntity.status(400).body(new ApiError(400, "Bad Request",
-                "Some required fields are missing or invalid."));
+        // TODO(Erin): A @Valid body failed. Return 400 with one field error's message.
+        // Request records use field constraints only; the order of multiple errors is not specified.
+        String message = exception.getBindingResult().getFieldError().getDefaultMessage();
+        return ResponseEntity.status(400).body(new ApiError(400, "Bad Request", message));
     }
 
     @ExceptionHandler({
@@ -60,9 +61,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException exception) {
-        // TODO(Erin): The database refused a save, usually the unique email constraint.
-        //             Return 409 with "A member with this email already exists." or a general conflict message.
-        return ResponseEntity.status(409).body(new ApiError(409, "Conflict", "A member with this email already exists."));
+        // TODO(Erin): The database refused a save. Return 409 with the general conflict message in API.md.
+        //             MemberService's duplicate-email check throws ConflictException with the email message.
+        return ResponseEntity.status(409).body(new ApiError(409, "Conflict", "The request conflicts with the stored data."));
     }
 
     @ExceptionHandler(Exception.class)
