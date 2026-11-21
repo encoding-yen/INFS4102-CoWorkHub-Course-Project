@@ -8,6 +8,7 @@
 
 package com.coworkhub.member;
 
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,19 +33,19 @@ public class MemberController {
     @GetMapping
     public List<Member> list() {
         // TODO(Erin): Return memberService.findAll(). Status 200.
-        throw new UnsupportedOperationException("TODO(Erin): GET /api/members");
+        return memberService.findAll();
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Member create(@RequestBody MemberRequest request) {
+    public Member create(@Valid @RequestBody MemberRequest request) {
         // TODO(Erin): Add @Valid before @RequestBody so missing fields return 400, then call memberService.create.
-        throw new UnsupportedOperationException("TODO(Erin): POST /api/members");
+        return memberService.create(request);
     }
 
     @PutMapping("/{id}")
-    public Member update(@PathVariable Long id, @RequestBody MemberRequest request) {
+    public Member update(@PathVariable Long id, @Valid @RequestBody MemberRequest request) {
         // TODO(Erin): Add @Valid, then call memberService.update. Status 200.
-        throw new UnsupportedOperationException("TODO(Erin): PUT /api/members/{id}");
+        return memberService.update(id, request);
     }
 }

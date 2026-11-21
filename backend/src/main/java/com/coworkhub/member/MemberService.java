@@ -33,33 +33,28 @@ public class MemberService {
 
     public Member create(MemberRequest request) {
         // TODO(Erin):
-        // 1. Trim fullName and email.
-        // 2. If the email is already used, throw new ConflictException("A member with this email already exists.").
-        // 3. Copy the fields into a new Member and save it. The database assigns the id.
-        String fullName = request.fullName().trim();
-        String email = request.email().trim();
-        if (memberRepository.existsByEmailIgnoreCase(email)) {
+        // 1. If the email is already used, throw new ConflictException("A member with this email already exists.").
+        // 2. Copy the fields into a new Member and save it. The database assigns the id.
+        if (memberRepository.existsByEmailIgnoreCase(request.email())) {
             throw new ConflictException("A member with this email already exists.");
         }
         Member member = new Member();
-        member.setFullName(fullName);
-        member.setEmail(email);
+        member.setFullName(request.fullName());
+        member.setEmail(request.email());
         return memberRepository.save(member);
     }
 
     public Member update(Long id, MemberRequest request) {
         // TODO(Erin):
         // 1. Load the member with findById (404 if missing).
-        // 2. Trim the fields. If the new email belongs to a different member, throw ConflictException (409).
+        // 2. If the new email belongs to a different member, throw ConflictException (409).
         // 3. Copy the fields onto the existing member and save it.
         Member member = findById(id);
-        String fullName = request.fullName().trim();
-        String email = request.email().trim();
-        if (memberRepository.existsByEmailIgnoreCaseAndIdNot(email, id)) {
+        if (memberRepository.existsByEmailIgnoreCaseAndIdNot(request.email(), id)) {
             throw new ConflictException("A member with this email already exists.");
         }
-        member.setFullName(fullName);
-        member.setEmail(email);
+        member.setFullName(request.fullName());
+        member.setEmail(request.email());
         return memberRepository.save(member);
     }
 }
