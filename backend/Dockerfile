@@ -6,16 +6,16 @@
 #
 # TODO(Yyan): Write the two stages below.
 #
-# Stage 1 - build
-#   FROM a JDK 17 image with Maven, for example maven:3.9-eclipse-temurin-17 (or eclipse-temurin:17-jdk + ./mvnw)
-#   WORKDIR /app
-#   COPY pom.xml
-#   COPY src
-#   RUN mvn -q -DskipTests package
-#
-# Stage 2 - run
-#   FROM a JRE 17 image, for example eclipse-temurin:17-jre
-#   WORKDIR /app
-#   COPY --from=build /app/target/*.jar app.jar
-#   EXPOSE 8080
-#   ENTRYPOINT ["java", "-jar", "app.jar"]
+# Stage 1 - build: compile the source and package the jar with Maven.
+FROM maven:3.9-eclipse-temurin-17 AS build
+WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+RUN mvn -q -B -DskipTests package
+
+# Stage 2 - run: only a Java 17 runtime and the finished jar.
+FROM eclipse-temurin:17-jre
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
