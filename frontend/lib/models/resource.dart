@@ -33,6 +33,16 @@ class Resource {
   factory Resource.fromJson(Map<String, dynamic> json) {
     // TODO(Jassem): Read every field. hourlyRate arrives as a JSON number: use (json['hourlyRate'] as num).toDouble().
     //               hasVideoConference and deskType may be missing.
-    throw UnimplementedError('TODO(Jassem): Resource.fromJson');
+    return Resource(
+      id: json['id'] as int,
+      type: json['type'] as String,
+      name: json['name'] as String,
+      location: json['location'] as String,
+      capacity: json['capacity'] as int,
+      hourlyRate: (json['hourlyRate'] as num).toDouble(),
+      status: json['status'] as String,
+      hasVideoConference: json['hasVideoConference'] as bool?,
+      deskType: json['deskType'] as String?,
+    );
   }
 }

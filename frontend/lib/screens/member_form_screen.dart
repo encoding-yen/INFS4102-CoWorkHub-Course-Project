@@ -7,10 +7,10 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../models/member.dart';
+import '../models/sample_data.dart';
 import '../services/api_client.dart';
 
 class MemberFormScreen extends StatefulWidget {
-  /// Pass [member] to edit it; leave it null to create a new member.
   const MemberFormScreen({super.key, required this.api, this.member});
 
   final ApiClient api;
@@ -21,28 +21,82 @@ class MemberFormScreen extends StatefulWidget {
 }
 
 class _MemberFormScreenState extends State<MemberFormScreen> {
-  // TODO(Jassem): A Form with a GlobalKey<FormState> and controllers for fullName and email.
+  final formKey = GlobalKey<FormState>();
+  late final nameController = TextEditingController(
+    text: widget.member?.fullName,
+  );
+  late final emailController = TextEditingController(
+    text: widget.member?.email,
+  );
 
-  String? validateName(String? value) {
-    // TODO(Jassem): 'Name is required' when empty.
-    throw UnimplementedError('TODO(Jassem): validateName');
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    super.dispose();
   }
 
   String? validateEmail(String? value) {
-    // TODO(Jassem): 'Email is required' when empty; 'Enter a valid email' when it has no @.
-    throw UnimplementedError('TODO(Jassem): validateEmail');
+    final email = (value ?? '').trim().toLowerCase();
+    if (email.isEmpty) return 'Email is required';
+    if (!email.contains('@')) return 'Enter a valid email';
+
+    final taken = sampleMembers.any(
+      (m) => m.id != widget.member?.id && m.email.toLowerCase() == email,
+    );
+    return taken ? 'This email is already in use' : null;
   }
 
-  Future<void> save() async {
-    // TODO(Jassem): Validate, show loading, call createMember or updateMember, show success,
-    //               Navigator.pop(context, true). On ApiException show its message.
-    throw UnimplementedError('TODO(Jassem): MemberFormScreen.save');
+  void save() {
+    if (!formKey.currentState!.validate()) return;
+
+    final original = widget.member;
+    final name = nameController.text.trim();
+    final email = emailController.text.trim();
+
+    if (original == null) {
+      // New members are appended in ID order in the sample list.
+      final id = sampleMembers.isEmpty ? 1 : sampleMembers.last.id + 1;
+      sampleMembers.add(Member(id: id, fullName: name, email: email));
+    } else {
+      final index = sampleMembers.indexWhere((m) => m.id == original.id);
+      sampleMembers[index] = Member(
+        id: original.id,
+        fullName: name,
+        email: email,
+      );
+    }
+
+    Navigator.pop(context, true);
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('TODO(Jassem): Member form')),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.member == null ? 'New member' : 'Edit member'),
+      ),
+      body: Form(
+        key: formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(24),
+          children: [
+            TextFormField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Full name'),
+              validator: (value) =>
+                  (value ?? '').trim().isEmpty ? 'Name is required' : null,
+            ),
+            TextFormField(
+              controller: emailController,
+              decoration: const InputDecoration(labelText: 'Email'),
+              validator: validateEmail,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: save, child: const Text('Save')),
+          ],
+        ),
+      ),
     );
   }
 }

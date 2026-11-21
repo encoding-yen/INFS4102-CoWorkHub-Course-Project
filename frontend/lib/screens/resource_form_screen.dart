@@ -7,11 +7,16 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../models/resource.dart';
+import '../models/sample_data.dart';
 import '../services/api_client.dart';
 
 class ResourceFormScreen extends StatefulWidget {
-  /// Pass [resource] to edit it. Otherwise pass [newType] as 'MEETING_ROOM' or 'DESK' to create one.
-  const ResourceFormScreen({super.key, required this.api, this.resource, this.newType});
+  const ResourceFormScreen({
+    super.key,
+    required this.api,
+    this.resource,
+    this.newType,
+  });
 
   final ApiClient api;
   final Resource? resource;
@@ -22,36 +27,144 @@ class ResourceFormScreen extends StatefulWidget {
 }
 
 class _ResourceFormScreenState extends State<ResourceFormScreen> {
-  // TODO(Jassem): A Form with a GlobalKey<FormState> and TextEditingControllers for
-  //               name, location, capacity, hourlyRate; a status dropdown (ACTIVE / OUT_OF_SERVICE);
-  //               a hasVideoConference switch for rooms or a deskType field for desks.
+  final formKey = GlobalKey<FormState>();
 
-  String? validateRequired(String? value) {
-    // TODO(Jassem): Return 'Required' when empty, otherwise null.
-    throw UnimplementedError('TODO(Jassem): validateRequired');
+  late final original = widget.resource;
+  late final type = original?.type ?? widget.newType!;
+  bool get isDesk => type == 'DESK';
+
+  late String name = original?.name ?? '';
+  late String location = original?.location ?? '';
+  late String capacity = original?.capacity.toString() ?? '1';
+  late String rate = original?.hourlyRate.toString() ?? '';
+  late String status = original?.status ?? 'ACTIVE';
+  late String deskType = original?.deskType ?? '';
+  late bool video = original?.hasVideoConference ?? false;
+
+  String? requiredText(String? value) {
+    return (value ?? '').trim().isEmpty ? 'Required' : null;
   }
 
-  String? validateCapacity(String? value) {
-    // TODO(Jassem): Whole number of at least 1. For a desk it must be exactly 1.
-    throw UnimplementedError('TODO(Jassem): validateCapacity');
-  }
+  void save() {
+    if (!formKey.currentState!.validate()) return;
 
-  String? validateHourlyRate(String? value) {
-    // TODO(Jassem): A number of 0 or more.
-    throw UnimplementedError('TODO(Jassem): validateHourlyRate');
-  }
+    final id =
+        original?.id ??
+        (sampleResources.fold<int>(
+              0,
+              (highest, item) => item.id > highest ? item.id : highest,
+            ) +
+            1);
 
-  Future<void> save() async {
-    // TODO(Jassem): Validate the form first. Show a loading indicator, call createRoom, createDesk, or updateResource,
-    //               show a success message, then Navigator.pop(context, true) so the list refreshes.
-    //               On ApiException show its message and stay on the form.
-    throw UnimplementedError('TODO(Jassem): ResourceFormScreen.save');
+    final resource = Resource(
+      id: id,
+      type: type,
+      name: name.trim(),
+      location: location.trim(),
+      capacity: isDesk ? 1 : int.parse(capacity.trim()),
+      hourlyRate: double.parse(rate.trim()),
+      status: status,
+      hasVideoConference: isDesk ? null : video,
+      deskType: isDesk ? deskType.trim() : null,
+    );
+
+    if (original == null) {
+      sampleResources.add(resource);
+    } else {
+      final index = sampleResources.indexWhere((item) => item.id == id);
+      sampleResources[index] = resource;
+    }
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('${resource.name} saved')));
+    Navigator.pop(context, true);
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('TODO(Jassem): Room / desk form')),
+    final action = original == null ? 'New' : 'Edit';
+    final kind = isDesk ? 'desk' : 'room';
+
+    return Scaffold(
+      appBar: AppBar(title: Text('$action $kind')),
+      body: Form(
+        key: formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(24),
+          children: [
+            TextFormField(
+              initialValue: name,
+              decoration: const InputDecoration(labelText: 'Name'),
+              validator: requiredText,
+              onChanged: (value) => name = value,
+            ),
+            TextFormField(
+              initialValue: location,
+              decoration: const InputDecoration(labelText: 'Location'),
+              validator: requiredText,
+              onChanged: (value) => location = value,
+            ),
+            TextFormField(
+              initialValue: capacity,
+              readOnly: isDesk,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Capacity'),
+              validator: (value) {
+                final seats = int.tryParse((value ?? '').trim());
+                if (seats == null || seats < 1) {
+                  return 'Enter a whole number of at least 1';
+                }
+                return null;
+              },
+              onChanged: (value) => capacity = value,
+            ),
+            TextFormField(
+              initialValue: rate,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(labelText: 'Hourly rate'),
+              validator: (value) {
+                final price = double.tryParse((value ?? '').trim());
+                if (price == null || !price.isFinite || price < 0) {
+                  return 'Enter a rate of 0 or more';
+                }
+                return null;
+              },
+              onChanged: (value) => rate = value,
+            ),
+            DropdownButtonFormField<String>(
+              initialValue: status,
+              decoration: const InputDecoration(labelText: 'Status'),
+              items: const [
+                DropdownMenuItem(value: 'ACTIVE', child: Text('Active')),
+                DropdownMenuItem(
+                  value: 'OUT_OF_SERVICE',
+                  child: Text('Out of service'),
+                ),
+              ],
+              onChanged: (value) {
+                if (value != null) status = value;
+              },
+            ),
+            if (isDesk)
+              TextFormField(
+                initialValue: deskType,
+                decoration: const InputDecoration(labelText: 'Desk type'),
+                validator: requiredText,
+                onChanged: (value) => deskType = value,
+              )
+            else
+              SwitchListTile(
+                title: const Text('Video conferencing'),
+                value: video,
+                onChanged: (value) => setState(() => video = value),
+              ),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: save, child: const Text('Save')),
+          ],
+        ),
+      ),
     );
   }
 }

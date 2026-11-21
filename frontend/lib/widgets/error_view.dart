@@ -14,6 +14,17 @@ class ErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // TODO(Jassem): An error icon, the message, and a Retry button when onRetry is not null.
-    return const Placeholder();
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline),
+          const SizedBox(height: 8),
+          Text(message, textAlign: TextAlign.center),
+          if (onRetry != null)
+            TextButton(onPressed: onRetry, child: const Text('Retry')),
+        ],
+      ),
+    );
   }
 }

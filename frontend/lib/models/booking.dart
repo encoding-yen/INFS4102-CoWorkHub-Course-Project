@@ -31,11 +31,22 @@ class Booking {
   bool get isCancelled => status == 'CANCELLED';
 
   // TODO(Jassem): Decide what counts as a past booking for the bookings screen, for example endDateTime before now.
-  bool get isPast => throw UnimplementedError('TODO(Jassem): Booking.isPast');
+  bool get isPast => endDateTime.isBefore(DateTime.now());
 
   factory Booking.fromJson(Map<String, dynamic> json) {
     // TODO(Jassem): Read every field. Dates use DateTime.parse("2026-11-20T14:00:00").
     //               totalCost arrives as a JSON number: use (json['totalCost'] as num).toDouble().
-    throw UnimplementedError('TODO(Jassem): Booking.fromJson');
+    return Booking(
+      id: json['id'] as int,
+      memberId: json['memberId'] as int,
+      memberName: json['memberName'] as String,
+      resourceId: json['resourceId'] as int,
+      resourceName: json['resourceName'] as String,
+      startDateTime: DateTime.parse(json['startDateTime'] as String),
+      endDateTime: DateTime.parse(json['endDateTime'] as String),
+      attendees: json['attendees'] as int,
+      status: json['status'] as String,
+      totalCost: (json['totalCost'] as num).toDouble(),
+    );
   }
 }

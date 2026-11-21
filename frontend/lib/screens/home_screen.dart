@@ -8,6 +8,8 @@ import 'package:material_ui/material_ui.dart';
 
 import '../services/api_client.dart';
 
+import '../models/sample_data.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.api});
 
@@ -35,8 +37,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     // TODO(Jassem): Show LoadingView, ErrorView, or four summary cards.
-    return const Scaffold(
-      body: Center(child: Text('TODO(Jassem): Home screen with summary counts')),
+        final roomCount = sampleResources.where((r) => r.type == 'MEETING_ROOM').length;
+        final deskCount = sampleResources.where((r) => r.type == 'DESK').length;
+
+    return Scaffold(
+      body: Center(child: Text('CoWorkHub Dashboard\nMeeting rooms: $roomCount\nDesks: $deskCount\nMembers: ${sampleMembers.length}\nBookings: ${sampleBookings.length}')),
     );
   }
 }
