@@ -1,11 +1,14 @@
 // Owner: Jassem
-// What: Simple entry point. AppShell provides navigation to the workflows.
-// Checklist: a usable starting screen. Summary counts are optional; the brief does not require four cards.
-// Depends on: ApiClient only if optional summary counts are implemented.
+// What: Dashboard. Entry point with a short summary.
+// Checklist: home has navigation and a short summary, such as how many rooms, desks, members, and bookings exist;
+//            loading state while counting; error message if the server cannot be reached.
+// Depends on: ApiClient getResources, getMembers, getBookings (Yyan). Use sample_data.dart until those work.
 
 import 'package:material_ui/material_ui.dart';
 
 import '../services/api_client.dart';
+
+import '../models/sample_data.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.api});
@@ -17,24 +20,28 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // TODO(Jassem): Keep this screen simple. State is only needed if implementing optional summary counts.
+  // TODO(Jassem): Hold loading / error / counts in state.
 
   @override
   void initState() {
     super.initState();
-    // TODO(Jassem): Call loadSummary only if implementing the optional summary.
+    // TODO(Jassem): Call loadSummary().
   }
 
   Future<void> loadSummary() async {
-    // TODO(Jassem): Optional: load list counts and show loading/errors. Otherwise remove this unused helper.
+    // TODO(Jassem): await the three ApiClient lists, count rooms, desks, members, and bookings, then setState.
+    //               Catch ApiException and show its message with ErrorView.
     throw UnimplementedError('TODO(Jassem): HomeScreen.loadSummary');
   }
 
   @override
   Widget build(BuildContext context) {
-    // TODO(Jassem): Show the app name and a short instruction to choose a workflow from the navigation.
-    return const Scaffold(
-      body: Center(child: Text('TODO(Jassem): Home screen with summary counts')),
+    // TODO(Jassem): Show LoadingView, ErrorView, or four summary cards.
+        final roomCount = sampleResources.where((r) => r.type == 'MEETING_ROOM').length;
+        final deskCount = sampleResources.where((r) => r.type == 'DESK').length;
+
+    return Scaffold(
+      body: Center(child: Text('CoWorkHub Dashboard\nMeeting rooms: $roomCount\nDesks: $deskCount\nMembers: ${sampleMembers.length}\nBookings: ${sampleBookings.length}')),
     );
   }
 }

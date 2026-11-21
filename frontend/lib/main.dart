@@ -9,6 +9,10 @@ import 'package:material_ui/material_ui.dart';
 
 import 'screens/home_screen.dart';
 import 'services/api_client.dart';
+import 'screens/resources_screen.dart';
+import 'screens/members_screen.dart';
+import 'screens/new_booking_screen.dart';
+import 'screens/bookings_screen.dart';
 
 void main() {
   runApp(CoWorkHubApp(api: ApiClient()));
@@ -39,12 +43,59 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
+  int selectedIndex = 0;
+
   @override
   Widget build(BuildContext context) {
     // TODO(Jassem): Add simple navigation, such as buttons or tabs, to select a screen.
     //               Destinations: Home, Resources, Members, New booking, Bookings.
     //               Screens: HomeScreen, ResourcesScreen, MembersScreen, NewBookingScreen, BookingsScreen.
     //               Pass widget.api to each one.
-    return HomeScreen(api: widget.api);
+    return Scaffold(
+      body: Row(
+        children: [
+          NavigationRail(
+            selectedIndex: selectedIndex,
+            labelType: NavigationRailLabelType.all,
+            onDestinationSelected: (index) {
+              setState(() {
+                selectedIndex = index;
+              });
+            },
+            destinations: const [
+              NavigationRailDestination(
+                icon: Icon(Icons.home),
+                label: Text('Home'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.business),
+                label: Text('Resources'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.people),
+                label: Text('Members'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.add),
+                label: Text('New booking'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.event),
+                label: Text('Bookings'),
+              ),
+            ],
+          ),
+          Expanded(
+            child: [
+              HomeScreen(api: widget.api),
+              ResourcesScreen(api: widget.api),
+              MembersScreen(api: widget.api),
+              NewBookingScreen(api: widget.api),
+              BookingsScreen(api: widget.api),
+            ][selectedIndex],
+          ),
+        ],
+      ),
+    );
   }
 }

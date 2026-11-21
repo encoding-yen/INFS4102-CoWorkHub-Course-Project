@@ -4,18 +4,17 @@
 // Depends on: nothing.
 
 class Member {
-  const Member({
-    required this.id,
-    required this.fullName,
-    required this.email,
-  });
+  const Member({required this.id, required this.fullName, required this.email});
 
   final int id;
   final String fullName;
   final String email;
 
   factory Member.fromJson(Map<String, dynamic> json) {
-    // TODO(Jassem): Read id, fullName, and email from json.
-    throw UnimplementedError('TODO(Jassem): Member.fromJson');
+    return Member(
+      id: json['id'] as int,
+      fullName: json['fullName'] as String,
+      email: json['email'] as String,
+    );
   }
 }

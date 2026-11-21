@@ -1,7 +1,7 @@
 // Owner: Jassem
-// What: List of rooms and desks with filters, edit, delete, and create.
-// Checklist: shows name, type, location, capacity, hourly rate, ACTIVE/OUT_OF_SERVICE;
-//            can filter; required details are visible in the list or form;
+// What: List of rooms and desks with filters, details, edit, delete, and create.
+// Checklist: separates rooms and desks; shows name, type, location, capacity, hourly rate, ACTIVE/OUT_OF_SERVICE;
+//            can filter; a resource can be opened to see its details;
 //            deleting a resource that has bookings shows the server's 409 message;
 //            loading, success, and error states; list refreshes after create, update, or delete.
 // Depends on: ApiClient getResources, deleteResource (Yyan); ResourceFormScreen; ResourceFilterBar.
@@ -10,7 +10,10 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../models/resource.dart';
+import '../models/sample_data.dart';
+import '../widgets/resource_filter_bar.dart';
 import '../services/api_client.dart';
+import 'resource_form_screen.dart';
 
 class ResourcesScreen extends StatefulWidget {
   const ResourcesScreen({super.key, required this.api});
@@ -23,6 +26,10 @@ class ResourcesScreen extends StatefulWidget {
 
 class _ResourcesScreenState extends State<ResourcesScreen> {
   // TODO(Jassem): Hold loading / error / resources / current filters in state.
+  String locationFilter = '';
+  String? typeFilter;
+  int minimumSeats = 0;
+  double priceLimit = double.infinity;
 
   @override
   void initState() {
@@ -36,27 +43,155 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
   }
 
   void showDetails(Resource resource) {
-    // TODO(Jassem): Optional details dialog. If the list/form already shows the fields, remove this unused helper.
-    throw UnimplementedError('TODO(Jassem): ResourcesScreen.showDetails');
+    // TODO(Jassem): Open a dialog or side panel with every field, including hasVideoConference or deskType.
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(resource.name),
+        content: Text(
+          'Type: ${resource.isDesk ? "Desk" : "Meeting room"}\n'
+          'Location: ${resource.location}\n'
+          'Capacity: ${resource.capacity}\n'
+          'Hourly rate: ${resource.hourlyRate.toStringAsFixed(2)}\n'
+          'Status: ${resource.status}\n'
+          '${resource.isDesk ? "Desk type: ${resource.deskType ?? 'Unknown'}" : "Video conferencing: ${resource.hasVideoConference == true ? 'Yes' : 'No'}"}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> openForm({Resource? resource, String? newType}) async {
-    // TODO(Jassem): Push ResourceFormScreen (create a room, create a desk, or edit). Reload when it returns true.
-    throw UnimplementedError('TODO(Jassem): ResourcesScreen.openForm');
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ResourceFormScreen(
+          api: widget.api,
+          resource: resource,
+          newType: newType,
+        ),
+      ),
+    );
+
+    if (mounted && saved == true) {
+      setState(() {});
+    }
   }
 
   Future<void> deleteResource(Resource resource) async {
-    // TODO(Jassem): Call widget.api.deleteResource, show success and reload. A confirmation dialog is optional.
-    //               On ApiException show its message, for example the 409 "has bookings" message.
-    throw UnimplementedError('TODO(Jassem): ResourcesScreen.deleteResource');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete ${resource.name}?'),
+        content: const Text('This will remove the resource from the list.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep resource'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final hasBookings = sampleBookings.any(
+      (booking) => booking.resourceId == resource.id,
+    );
+
+    if (hasBookings) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${resource.name} has bookings and cannot be deleted.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      sampleResources.removeWhere((item) => item.id == resource.id);
+    });
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('${resource.name} deleted')));
   }
 
   @override
   Widget build(BuildContext context) {
-    // TODO(Jassem): Show filters and one list/table with the required fields, including type and status.
-    //               Add New room, New desk, Edit, and Delete actions. Separate subtype sections are unnecessary.
-    return const Scaffold(
-      body: Center(child: Text('TODO(Jassem): Resources screen')),
+    // TODO(Jassem): ResourceFilterBar on top; then two sections, Meeting rooms and Desks, each a list or table;
+    //               buttons for New room, New desk, Edit, Delete. OUT_OF_SERVICE should be clearly visible.
+    return Scaffold(
+      body: ListView(
+        children: [
+          Row(
+            children: [
+              TextButton(
+                onPressed: () => openForm(newType: 'MEETING_ROOM'),
+                child: const Text('New room'),
+              ),
+              TextButton(
+                onPressed: () => openForm(newType: 'DESK'),
+                child: const Text('New desk'),
+              ),
+            ],
+          ),
+          ResourceFilterBar(
+            onApply: ({type, minCapacity, location, maxHourlyRate}) {
+              setState(() {
+                locationFilter = (location ?? '').toLowerCase();
+              });
+              minimumSeats = minCapacity ?? 0;
+              typeFilter = type;
+              priceLimit = maxHourlyRate ?? double.infinity;
+            },
+          ),
+          for (final desksOnly in [false, true]) ...[
+            ListTile(title: Text(desksOnly ? 'Desks' : 'Meeting rooms')),
+            for (final resource in sampleResources.where(
+              (r) =>
+                  r.isDesk == desksOnly &&
+                  r.location.toLowerCase().contains(locationFilter) &&
+                  r.capacity >= minimumSeats &&
+                  (typeFilter == null || r.type == typeFilter) &&
+                  r.hourlyRate <= priceLimit,
+            ))
+              ListTile(
+                title: Text(
+                  '${resource.name} (${resource.isDesk ? "Desk" : "Meeting room"})',
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(resource.status),
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      tooltip: 'Edit resource',
+                      onPressed: () => openForm(resource: resource),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      tooltip: 'Delete resource',
+                      onPressed: () => deleteResource(resource),
+                    ),
+                  ],
+                ),
+                onTap: () => showDetails(resource),
+                subtitle: Text(
+                  '${resource.location} • Capacity: ${resource.capacity} • ${resource.hourlyRate.toStringAsFixed(2)}/hour',
+                ),
+              ),
+          ],
+        ],
+      ),
     );
   }
 }

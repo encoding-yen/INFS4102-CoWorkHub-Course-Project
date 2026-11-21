@@ -13,6 +13,14 @@ class LoadingView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // TODO(Jassem): A centered CircularProgressIndicator with the optional label under it.
-    return const Placeholder();
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const CircularProgressIndicator(),
+          if (label != null) ...[const SizedBox(height: 8), Text(label!)],
+        ],
+      ),
+    );
   }
 }

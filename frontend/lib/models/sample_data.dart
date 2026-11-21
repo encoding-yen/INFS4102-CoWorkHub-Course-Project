@@ -10,11 +10,10 @@ import 'booking.dart';
 import 'member.dart';
 import 'resource.dart';
 
-const List<Member> sampleMembers = [
+final List<Member> sampleMembers = [
   Member(id: 1, fullName: 'Maya Chen', email: 'maya@example.com'),
 ];
-
-const List<Resource> sampleResources = [
+final List<Resource> sampleResources = [
   Resource(
     id: 1,
     type: 'MEETING_ROOM',
