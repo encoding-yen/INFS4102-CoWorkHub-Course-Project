@@ -2,21 +2,22 @@
 // What: Change the start, end, or attendees of a booking. The server rechecks every rule and recalculates the price.
 // Checklist: a booking can be edited; end before start is stopped before sending;
 //            the server's error message is shown (for example an overlap after editing).
-// Depends on: ApiClient updateBooking (Yyan).
+// Depends on: AppData (saves through ApiClient updateBooking, then updates every screen).
 
 import 'package:material_ui/material_ui.dart';
 
 import '../models/booking.dart';
 import '../services/api_client.dart';
+import '../state/app_data.dart';
 
 class BookingEditScreen extends StatefulWidget {
   const BookingEditScreen({
     super.key,
-    required this.api,
+    required this.data,
     required this.booking,
   });
 
-  final ApiClient api;
+  final AppData data;
   final Booking booking;
 
   @override
@@ -30,6 +31,7 @@ class _BookingEditScreenState extends State<BookingEditScreen> {
     text: widget.booking.attendees.toString(),
   );
   String? error;
+  bool saving = false;
 
   @override
   void dispose() {
@@ -76,11 +78,9 @@ class _BookingEditScreenState extends State<BookingEditScreen> {
     return '$date  $time';
   }
 
-  bool saving = false;
-
   Future<void> save() async {
     if (saving) return;
-    final booking = widget.booking;
+
     final count = int.tryParse(attendees.text.trim());
 
     if (!end.isAfter(start)) {
@@ -98,17 +98,28 @@ class _BookingEditScreenState extends State<BookingEditScreen> {
       saving = true;
       error = null;
     });
+
     try {
-      final updated = await widget.api.updateBooking(
-        booking.id, start: start, end: end, attendees: count,
+      // The server checks the capacity, out-of-service, and overlap rules and recalculates the price.
+      final updated = await widget.data.updateBooking(
+        widget.booking.id,
+        start: start,
+        end: end,
+        attendees: count,
       );
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Booking updated. Total: ${updated.totalCost.toStringAsFixed(2)}')),
+        SnackBar(
+          content: Text(
+            'Booking updated. Total: ${updated.totalCost.toStringAsFixed(2)}',
+          ),
+        ),
       );
-      if (mounted) Navigator.pop(context, true);
-    } catch (e) {
-      if (mounted) setState(() => error = e.toString());
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      // For example the 409 overlap message.
+      if (mounted) setState(() => error = e.message);
     } finally {
       if (mounted) setState(() => saving = false);
     }
@@ -125,21 +136,33 @@ class _BookingEditScreenState extends State<BookingEditScreen> {
           ListTile(
             title: const Text('Start'),
             subtitle: Text(formatTime(start)),
-            onTap: () => pickDateTime(isStart: true),
+            onTap: saving ? null : () => pickDateTime(isStart: true),
           ),
           ListTile(
             title: const Text('End'),
             subtitle: Text(formatTime(end)),
-            onTap: () => pickDateTime(isStart: false),
+            onTap: saving ? null : () => pickDateTime(isStart: false),
           ),
           TextField(
             controller: attendees,
+            enabled: !saving,
             decoration: const InputDecoration(labelText: 'Attendees'),
             keyboardType: TextInputType.number,
           ),
-          if (error != null) Text(error!),
+          if (error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Text(
+                error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: saving ? null : save, child: Text(saving ? 'Saving…' : 'Save changes')),
+          ElevatedButton(
+            onPressed: saving ? null : save,
+            child: Text(saving ? 'Saving...' : 'Save changes'),
+          ),
+          if (saving) const LinearProgressIndicator(),
         ],
       ),
     );

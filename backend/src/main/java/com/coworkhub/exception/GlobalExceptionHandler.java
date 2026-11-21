@@ -9,6 +9,8 @@
 
 package com.coworkhub.exception;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -20,6 +22,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ApiError> handleNotFound(NotFoundException exception) {
@@ -61,6 +65,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException exception) {
+        log.warn("Data integrity violation", exception);
         // TODO(Erin): The database refused a save. Return 409 with the general conflict message in API.md.
         //             MemberService's duplicate-email check throws ConflictException with the email message.
         return ResponseEntity.status(409).body(new ApiError(409, "Conflict", "The request conflicts with the stored data."));
@@ -68,9 +73,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleUnexpected(Exception exception) {
+        log.error("Unhandled exception", exception); // The client never sees the stack trace; the server log does.
         // TODO(Erin): Anything else. Return 500 with "Something went wrong while handling the request."
         //             Do not send the Java stack trace to the client.
-        return ResponseEntity.status(500).body(new ApiError(500, "Internal Server Error",
-                "Something went wrong while handling the request."));
+        return ResponseEntity.status(500).body(
+                new ApiError(500, "Internal Server Error", "Something went wrong while handling the request."));
     }
 }

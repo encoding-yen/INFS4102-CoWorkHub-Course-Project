@@ -4,67 +4,36 @@
 //            can filter; a resource can be opened to see its details;
 //            deleting a resource that has bookings shows the server's 409 message;
 //            loading, success, and error states; list refreshes after create, update, or delete.
-// Depends on: ApiClient getResources, deleteResource (Yyan); ResourceFormScreen; ResourceFilterBar.
+// Depends on: AppData (shared data, loaded through ApiClient); ResourceFormScreen; ResourceFilterBar.
+//             The list is read from AppData, so edits made on any screen appear here immediately.
 
 import 'package:material_ui/material_ui.dart';
 
 import '../models/resource.dart';
-import '../widgets/resource_filter_bar.dart';
-import '../widgets/loading_view.dart';
-import '../widgets/error_view.dart';
-import '../widgets/feedback.dart';
 import '../services/api_client.dart';
+import '../state/app_data.dart';
+import '../widgets/data_gate.dart';
+import '../widgets/feedback.dart';
+import '../widgets/resource_filter_bar.dart';
 import 'resource_form_screen.dart';
 
 class ResourcesScreen extends StatefulWidget {
-  const ResourcesScreen({super.key, required this.api});
+  const ResourcesScreen({super.key, required this.data});
 
-  final ApiClient api;
+  final AppData data;
 
   @override
   State<ResourcesScreen> createState() => _ResourcesScreenState();
 }
 
 class _ResourcesScreenState extends State<ResourcesScreen> {
-  String? locationFilter;
+  // The filters are applied to the shared list, so a changed resource is filtered correctly at once.
+  String locationFilter = '';
   String? typeFilter;
-  int? minimumSeats;
-  double? priceLimit;
-  List<Resource> resources = [];
-  bool loading = true;
-  String? loadError;
-  int requestId = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    loadResources();
-  }
-
-  Future<void> loadResources() async {
-    final request = ++requestId;
-    setState(() {
-      loading = true;
-      loadError = null;
-    });
-    try {
-      final result = await widget.api.getResources(
-        type: typeFilter, location: locationFilter,
-        minCapacity: minimumSeats, maxHourlyRate: priceLimit,
-      );
-      if (!mounted || request != requestId) return;
-      setState(() {
-        resources = result;
-      });
-    } catch (e) {
-      if (mounted && request == requestId) setState(() => loadError = e.toString());
-    } finally {
-      if (mounted && request == requestId) setState(() => loading = false);
-    }
-  }
+  int minimumSeats = 0;
+  double priceLimit = double.infinity;
 
   void showDetails(Resource resource) {
-    // TODO(Jassem): Open a dialog or side panel with every field, including hasVideoConference or deskType.
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -88,21 +57,17 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
   }
 
   Future<void> openForm({Resource? resource, String? newType}) async {
-    final saved = await Navigator.push<bool>(
+    // The form saves through AppData, which updates every screen. Nothing else to do here.
+    await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) => ResourceFormScreen(
-          api: widget.api,
+          data: widget.data,
           resource: resource,
           newType: newType,
         ),
       ),
     );
-
-    if (mounted && saved == true) {
-      showSuccess(context, 'Resource saved');
-      await loadResources();
-    }
   }
 
   Future<void> deleteResource(Resource resource) async {
@@ -126,23 +91,38 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
 
     if (confirmed != true || !mounted) return;
 
-    setState(() => loading = true);
     try {
-      await widget.api.deleteResource(resource.id);
-      if (!mounted) return;
-      showSuccess(context, '${resource.name} deleted');
-    } catch (e) {
-      if (!mounted) return;
-      showError(context, e.toString());
+      await widget.data.deleteResource(resource.id);
+      if (mounted) showSuccess(context, '${resource.name} deleted');
+    } on ApiException catch (e) {
+      // For example the 409 message: the resource has bookings and cannot be deleted.
+      if (mounted) showError(context, e.message);
     }
-    await loadResources();
   }
 
   @override
   Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: widget.data,
+      builder: (context, _) => Scaffold(
+        appBar: AppBar(title: const Text('Resources')),
+        body: DataGate(data: widget.data, builder: buildContent),
+      ),
+    );
+  }
+
+  Widget buildContent(BuildContext context) {
     final theme = Theme.of(context);
-    final rooms = resources.where((r) => !r.isDesk);
-    final desks = resources.where((r) => r.isDesk);
+    final all = widget.data.resources;
+    final matches = all.where((resource) {
+      return resource.location.toLowerCase().contains(locationFilter) &&
+          resource.capacity >= minimumSeats &&
+          resource.hourlyRate <= priceLimit &&
+          (typeFilter == null || resource.type == typeFilter);
+    }).toList();
+
+    final rooms = matches.where((r) => !r.isDesk).toList();
+    final desks = matches.where((r) => r.isDesk).toList();
 
     Widget resourceCard(Resource resource) {
       return Card(
@@ -185,63 +165,67 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Resources')),
-      body: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  ElevatedButton(
-                    onPressed: () => openForm(newType: 'MEETING_ROOM'),
-                    child: const Text('New room'),
-                  ),
-                  OutlinedButton(
-                    onPressed: () => openForm(newType: 'DESK'),
-                    child: const Text('New desk'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ResourceFilterBar(
-                onApply: ({type, minCapacity, location, maxHourlyRate}) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ElevatedButton(
+                  onPressed: () => openForm(newType: 'MEETING_ROOM'),
+                  child: const Text('New room'),
+                ),
+                OutlinedButton(
+                  onPressed: () => openForm(newType: 'DESK'),
+                  child: const Text('New desk'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ResourceFilterBar(
+              onApply: ({type, minCapacity, location, maxHourlyRate}) {
+                setState(() {
                   typeFilter = type;
-                  locationFilter = location;
-                  minimumSeats = minCapacity;
-                  priceLimit = maxHourlyRate;
-                  loadResources();
-                },
+                  locationFilter = (location ?? '').toLowerCase();
+                  minimumSeats = minCapacity ?? 0;
+                  priceLimit = maxHourlyRate ?? double.infinity;
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+            if (all.isEmpty)
+              const ListTile(
+                title: Text('No resources yet'),
+                subtitle: Text('Choose New room or New desk to add one.'),
+              )
+            else if (matches.isEmpty)
+              const ListTile(
+                title: Text('No matching resources'),
+                subtitle: Text(
+                  'Change your filters or select Clear to see all resources.',
+                ),
               ),
-              const SizedBox(height: 16),
-              if (loading)
-                const LoadingView()
-              else if (loadError != null)
-                ErrorView(message: loadError!, onRetry: loadResources)
-              else if (resources.isEmpty)
-                const ListTile(title: Text('No resources match this search.')),
-              if (!loading && loadError == null && rooms.isNotEmpty) ...[
-                Text(
-                  'Meeting rooms (${rooms.length})',
-                  style: theme.textTheme.titleMedium,
-                ),
-                for (final room in rooms) resourceCard(room),
-              ],
-              if (!loading && loadError == null && desks.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  'Desks (${desks.length})',
-                  style: theme.textTheme.titleMedium,
-                ),
-                for (final desk in desks) resourceCard(desk),
-              ],
+            if (rooms.isNotEmpty) ...[
+              Text(
+                'Meeting rooms (${rooms.length})',
+                style: theme.textTheme.titleMedium,
+              ),
+              for (final room in rooms) resourceCard(room),
             ],
-          ),
+            if (desks.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Desks (${desks.length})',
+                style: theme.textTheme.titleMedium,
+              ),
+              for (final desk in desks) resourceCard(desk),
+            ],
+          ],
         ),
       ),
     );

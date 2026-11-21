@@ -2,22 +2,23 @@
 // What: Create a room, create a desk, or edit an existing resource, including setting it OUT_OF_SERVICE.
 // Checklist: management screens create and update a room and a desk, and can set a resource to OUT_OF_SERVICE;
 //            the form stops an empty name before the request is sent; loading, success, and error states.
-// Depends on: ApiClient createRoom, createDesk, updateResource (Yyan).
+// Depends on: AppData (saves through ApiClient createRoom, createDesk, updateResource, then updates every screen).
 
 import 'package:material_ui/material_ui.dart';
 
 import '../models/resource.dart';
 import '../services/api_client.dart';
+import '../state/app_data.dart';
 
 class ResourceFormScreen extends StatefulWidget {
   const ResourceFormScreen({
     super.key,
-    required this.api,
+    required this.data,
     this.resource,
     this.newType,
   });
 
-  final ApiClient api;
+  final AppData data;
   final Resource? resource;
   final String? newType;
 
@@ -40,44 +41,65 @@ class _ResourceFormScreenState extends State<ResourceFormScreen> {
   late String deskType = original?.deskType ?? '';
   late bool video = original?.hasVideoConference ?? false;
 
+  bool saving = false;
+  String? error;
+
   String? requiredText(String? value) {
     return (value ?? '').trim().isEmpty ? 'Required' : null;
   }
 
-  bool saving = false;
-  String? error;
-
   Future<void> save() async {
     if (saving || !formKey.currentState!.validate()) return;
+
+    final cleanName = name.trim();
+    final cleanLocation = location.trim();
+    final seats = isDesk ? 1 : int.parse(capacity.trim());
+    final hourlyRate = double.parse(rate.trim());
+    final cleanDeskType = deskType.trim();
 
     setState(() {
       saving = true;
       error = null;
     });
+
     try {
-      final id = original?.id;
-      final seats = int.parse(capacity.trim());
-      final price = double.parse(rate.trim());
-      if (id != null) {
-        await widget.api.updateResource(
-          id, name: name, location: location, capacity: seats, hourlyRate: price,
-          status: status, deskType: isDesk ? deskType : null,
+      final existing = original;
+      if (existing != null) {
+        await widget.data.updateResource(
+          existing.id,
+          name: cleanName,
+          location: cleanLocation,
+          capacity: seats,
+          hourlyRate: hourlyRate,
+          status: status,
           hasVideoConference: isDesk ? null : video,
+          deskType: isDesk ? cleanDeskType : null,
         );
       } else if (isDesk) {
-        await widget.api.createDesk(
-          name: name, location: location, hourlyRate: price,
-          deskType: deskType, status: status,
+        await widget.data.createDesk(
+          name: cleanName,
+          location: cleanLocation,
+          hourlyRate: hourlyRate,
+          deskType: cleanDeskType,
+          status: status,
         );
       } else {
-        await widget.api.createRoom(
-          name: name, location: location, capacity: seats, hourlyRate: price,
-          hasVideoConference: video, status: status,
+        await widget.data.createRoom(
+          name: cleanName,
+          location: cleanLocation,
+          capacity: seats,
+          hourlyRate: hourlyRate,
+          hasVideoConference: video,
+          status: status,
         );
       }
-      if (mounted) Navigator.pop(context, true);
-    } catch (e) {
-      if (mounted) setState(() => error = e.toString());
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('$cleanName saved')));
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (mounted) setState(() => error = e.message);
     } finally {
       if (mounted) setState(() => saving = false);
     }
@@ -97,12 +119,14 @@ class _ResourceFormScreenState extends State<ResourceFormScreen> {
           children: [
             TextFormField(
               initialValue: name,
+              enabled: !saving,
               decoration: const InputDecoration(labelText: 'Name'),
               validator: requiredText,
               onChanged: (value) => name = value,
             ),
             TextFormField(
               initialValue: location,
+              enabled: !saving,
               decoration: const InputDecoration(labelText: 'Location'),
               validator: requiredText,
               onChanged: (value) => location = value,
@@ -110,6 +134,7 @@ class _ResourceFormScreenState extends State<ResourceFormScreen> {
             TextFormField(
               initialValue: capacity,
               readOnly: isDesk,
+              enabled: !saving,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: 'Capacity'),
               validator: (value) {
@@ -123,6 +148,7 @@ class _ResourceFormScreenState extends State<ResourceFormScreen> {
             ),
             TextFormField(
               initialValue: rate,
+              enabled: !saving,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
@@ -146,13 +172,16 @@ class _ResourceFormScreenState extends State<ResourceFormScreen> {
                   child: Text('Out of service'),
                 ),
               ],
-              onChanged: (value) {
-                if (value != null) status = value;
-              },
+              onChanged: saving
+                  ? null
+                  : (value) {
+                      if (value != null) status = value;
+                    },
             ),
             if (isDesk)
               TextFormField(
                 initialValue: deskType,
+                enabled: !saving,
                 decoration: const InputDecoration(labelText: 'Desk type'),
                 validator: requiredText,
                 onChanged: (value) => deskType = value,
@@ -161,11 +190,22 @@ class _ResourceFormScreenState extends State<ResourceFormScreen> {
               SwitchListTile(
                 title: const Text('Video conferencing'),
                 value: video,
-                onChanged: (value) => setState(() => video = value),
+                onChanged: saving ? null : (value) => setState(() => video = value),
+              ),
+            if (error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
               ),
             const SizedBox(height: 16),
-            if (error != null) Text(error!),
-            ElevatedButton(onPressed: saving ? null : save, child: Text(saving ? 'Saving…' : 'Save')),
+            ElevatedButton(
+              onPressed: saving ? null : save,
+              child: Text(saving ? 'Saving...' : 'Save'),
+            ),
+            if (saving) const LinearProgressIndicator(),
           ],
         ),
       ),

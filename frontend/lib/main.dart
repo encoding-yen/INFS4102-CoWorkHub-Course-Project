@@ -1,42 +1,46 @@
 // Owner: Jassem
 // What: App entry point and the main desktop window with navigation.
 // Checklist: home has navigation; ordinary Flutter desktop widgets; no operating-system-specific code.
-// Depends on: every screen (Jassem), ApiClient (Yyan, signatures done).
+// Depends on: every screen (Jassem), ApiClient (Yyan), AppData (shared data for every screen).
 //
-// One ApiClient is created here and passed to every screen, so all HTTP calls go through Yyan's class.
+// One ApiClient is created here and wrapped in one AppData. Every screen receives that same AppData,
+// so all HTTP calls go through ApiClient and every screen shows the same, current data.
 
 import 'package:material_ui/material_ui.dart';
 
 import 'screens/home_screen.dart';
-import 'services/api_client.dart';
 import 'screens/resources_screen.dart';
 import 'screens/members_screen.dart';
 import 'screens/new_booking_screen.dart';
 import 'screens/bookings_screen.dart';
+import 'services/api_client.dart';
+import 'state/app_data.dart';
 
 void main() {
-  runApp(CoWorkHubApp(api: ApiClient()));
+  final data = AppData(ApiClient());
+  data.refresh(); // Load members, resources, and bookings once at start-up.
+  runApp(CoWorkHubApp(data: data));
 }
 
 class CoWorkHubApp extends StatelessWidget {
-  const CoWorkHubApp({super.key, required this.api});
+  const CoWorkHubApp({super.key, required this.data});
 
-  final ApiClient api;
+  final AppData data;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'CoWorkHub',
       debugShowCheckedModeBanner: false,
-      home: AppShell(api: api),
+      home: AppShell(data: data),
     );
   }
 }
 
 class AppShell extends StatefulWidget {
-  const AppShell({super.key, required this.api});
+  const AppShell({super.key, required this.data});
 
-  final ApiClient api;
+  final AppData data;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -47,10 +51,6 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    // TODO(Jassem): Add simple navigation, such as buttons or tabs, to select a screen.
-    //               Destinations: Home, Resources, Members, New booking, Bookings.
-    //               Screens: HomeScreen, ResourcesScreen, MembersScreen, NewBookingScreen, BookingsScreen.
-    //               Pass widget.api to each one.
     return Scaffold(
       body: Row(
         children: [
@@ -89,11 +89,11 @@ class _AppShellState extends State<AppShell> {
           ),
           Expanded(
             child: [
-              HomeScreen(api: widget.api),
-              ResourcesScreen(api: widget.api),
-              MembersScreen(api: widget.api),
-              NewBookingScreen(api: widget.api),
-              BookingsScreen(api: widget.api),
+              HomeScreen(data: widget.data),
+              ResourcesScreen(data: widget.data),
+              MembersScreen(data: widget.data),
+              NewBookingScreen(data: widget.data),
+              BookingsScreen(data: widget.data),
             ][selectedIndex],
           ),
         ],
