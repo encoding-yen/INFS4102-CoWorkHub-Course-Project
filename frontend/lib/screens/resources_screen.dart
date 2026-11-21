@@ -5,13 +5,14 @@
 //            deleting a resource that has bookings shows the server's 409 message;
 //            loading, success, and error states; list refreshes after create, update, or delete.
 // Depends on: ApiClient getResources, deleteResource (Yyan); ResourceFormScreen; ResourceFilterBar.
-//             Use sampleResources until ApiClient works.
 
 import 'package:material_ui/material_ui.dart';
 
 import '../models/resource.dart';
-import '../models/sample_data.dart';
 import '../widgets/resource_filter_bar.dart';
+import '../widgets/loading_view.dart';
+import '../widgets/error_view.dart';
+import '../widgets/feedback.dart';
 import '../services/api_client.dart';
 import 'resource_form_screen.dart';
 
@@ -25,21 +26,41 @@ class ResourcesScreen extends StatefulWidget {
 }
 
 class _ResourcesScreenState extends State<ResourcesScreen> {
-  // TODO(Jassem): Hold loading / error / resources / current filters in state.
-  String locationFilter = '';
+  String? locationFilter;
   String? typeFilter;
-  int minimumSeats = 0;
-  double priceLimit = double.infinity;
+  int? minimumSeats;
+  double? priceLimit;
+  List<Resource> resources = [];
+  bool loading = true;
+  String? loadError;
+  int requestId = 0;
 
   @override
   void initState() {
     super.initState();
-    // TODO(Jassem): Call loadResources().
+    loadResources();
   }
 
   Future<void> loadResources() async {
-    // TODO(Jassem): await widget.api.getResources(...current filters...), then setState.
-    throw UnimplementedError('TODO(Jassem): ResourcesScreen.loadResources');
+    final request = ++requestId;
+    setState(() {
+      loading = true;
+      loadError = null;
+    });
+    try {
+      final result = await widget.api.getResources(
+        type: typeFilter, location: locationFilter,
+        minCapacity: minimumSeats, maxHourlyRate: priceLimit,
+      );
+      if (!mounted || request != requestId) return;
+      setState(() {
+        resources = result;
+      });
+    } catch (e) {
+      if (mounted && request == requestId) setState(() => loadError = e.toString());
+    } finally {
+      if (mounted && request == requestId) setState(() => loading = false);
+    }
   }
 
   void showDetails(Resource resource) {
@@ -79,7 +100,8 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
     );
 
     if (mounted && saved == true) {
-      setState(() {});
+      showSuccess(context, 'Resource saved');
+      await loadResources();
     }
   }
 
@@ -104,39 +126,23 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
 
     if (confirmed != true || !mounted) return;
 
-    final hasBookings = sampleBookings.any(
-      (booking) => booking.resourceId == resource.id,
-    );
-
-    if (hasBookings) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${resource.name} has bookings and cannot be deleted.'),
-        ),
-      );
-      return;
+    setState(() => loading = true);
+    try {
+      await widget.api.deleteResource(resource.id);
+      if (!mounted) return;
+      showSuccess(context, '${resource.name} deleted');
+    } catch (e) {
+      if (!mounted) return;
+      showError(context, e.toString());
     }
-
-    setState(() {
-      sampleResources.removeWhere((item) => item.id == resource.id);
-    });
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('${resource.name} deleted')));
+    await loadResources();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final matches = sampleResources.where((resource) {
-      return resource.location.toLowerCase().contains(locationFilter) &&
-          resource.capacity >= minimumSeats &&
-          resource.hourlyRate <= priceLimit &&
-          (typeFilter == null || resource.type == typeFilter);
-    }).toList();
-
-    final rooms = matches.where((r) => !r.isDesk).toList();
-    final desks = matches.where((r) => r.isDesk).toList();
+    final rooms = resources.where((r) => !r.isDesk);
+    final desks = resources.where((r) => r.isDesk);
 
     Widget resourceCard(Resource resource) {
       return Card(
@@ -205,35 +211,28 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
               const SizedBox(height: 16),
               ResourceFilterBar(
                 onApply: ({type, minCapacity, location, maxHourlyRate}) {
-                  setState(() {
-                    typeFilter = type;
-                    locationFilter = (location ?? '').toLowerCase();
-                    minimumSeats = minCapacity ?? 0;
-                    priceLimit = maxHourlyRate ?? double.infinity;
-                  });
+                  typeFilter = type;
+                  locationFilter = location;
+                  minimumSeats = minCapacity;
+                  priceLimit = maxHourlyRate;
+                  loadResources();
                 },
               ),
               const SizedBox(height: 16),
-              if (sampleResources.isEmpty)
-                const ListTile(
-                  title: Text('No resources yet'),
-                  subtitle: Text('Choose New room or New desk to add one.'),
-                )
-              else if (matches.isEmpty)
-                const ListTile(
-                  title: Text('No matching resources'),
-                  subtitle: Text(
-                    'Change your filters or select Clear to see all resources.',
-                  ),
-                ),
-              if (rooms.isNotEmpty) ...[
+              if (loading)
+                const LoadingView()
+              else if (loadError != null)
+                ErrorView(message: loadError!, onRetry: loadResources)
+              else if (resources.isEmpty)
+                const ListTile(title: Text('No resources match this search.')),
+              if (!loading && loadError == null && rooms.isNotEmpty) ...[
                 Text(
                   'Meeting rooms (${rooms.length})',
                   style: theme.textTheme.titleMedium,
                 ),
                 for (final room in rooms) resourceCard(room),
               ],
-              if (desks.isNotEmpty) ...[
+              if (!loading && loadError == null && desks.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(
                   'Desks (${desks.length})',

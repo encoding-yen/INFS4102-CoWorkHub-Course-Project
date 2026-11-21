@@ -2,17 +2,59 @@
 // What: Dashboard. Entry point with a short summary.
 // Checklist: home has navigation and a short summary, such as how many rooms, desks, members, and bookings exist;
 //            loading state while counting; error message if the server cannot be reached.
-// Depends on: ApiClient getResources, getMembers, getBookings (Yyan). Use sample_data.dart until those work.
+// Depends on: ApiClient getResources, getMembers, getBookings (Yyan).
 
 import 'package:material_ui/material_ui.dart';
 
-import '../models/sample_data.dart';
+import '../widgets/loading_view.dart';
+import '../widgets/error_view.dart';
 import '../services/api_client.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.api});
 
   final ApiClient api;
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int rooms = 0, desks = 0, members = 0, bookings = 0;
+  bool loading = true;
+  String? loadError;
+  int requestId = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    loadSummary();
+  }
+
+  Future<void> loadSummary() async {
+    final request = ++requestId;
+    setState(() {
+      loading = true;
+      loadError = null;
+    });
+    try {
+      final api = widget.api;
+      final resources = await api.getResources();
+      final people = await api.getMembers();
+      final reservations = await api.getBookings();
+      if (!mounted || request != requestId) return;
+      setState(() {
+        desks = resources.where((r) => r.isDesk).length;
+        rooms = resources.length - desks;
+        members = people.length;
+        bookings = reservations.length;
+      });
+    } catch (e) {
+      if (mounted && request == requestId) setState(() => loadError = e.toString());
+    } finally {
+      if (mounted && request == requestId) setState(() => loading = false);
+    }
+  }
 
   Widget summaryCard(String label, int count, IconData icon, double width) {
     return SizedBox(
@@ -30,9 +72,14 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rooms = sampleResources.where((r) => !r.isDesk).length;
-    final desks = sampleResources.where((r) => r.isDesk).length;
-
+    if (loading || loadError != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('CoWorkHub Dashboard')),
+        body: loading
+            ? const LoadingView()
+            : ErrorView(message: loadError!, onRetry: loadSummary),
+      );
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('CoWorkHub Dashboard')),
       body: Align(
@@ -60,13 +107,13 @@ class HomeScreen extends StatelessWidget {
                       summaryCard('Desks', desks, Icons.computer, cardWidth),
                       summaryCard(
                         'Members',
-                        sampleMembers.length,
+                        members,
                         Icons.people,
                         cardWidth,
                       ),
                       summaryCard(
                         'Bookings',
-                        sampleBookings.length,
+                        bookings,
                         Icons.event,
                         cardWidth,
                       ),

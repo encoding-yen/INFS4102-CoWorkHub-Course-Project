@@ -7,7 +7,6 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../models/booking.dart';
-import '../models/sample_data.dart';
 import '../services/api_client.dart';
 
 class BookingEditScreen extends StatefulWidget {
@@ -77,7 +76,10 @@ class _BookingEditScreenState extends State<BookingEditScreen> {
     return '$date  $time';
   }
 
-  void save() {
+  bool saving = false;
+
+  Future<void> save() async {
+    if (saving) return;
     final booking = widget.booking;
     final count = int.tryParse(attendees.text.trim());
 
@@ -92,59 +94,24 @@ class _BookingEditScreenState extends State<BookingEditScreen> {
       return;
     }
 
-    final resource = sampleResources.firstWhere(
-      (r) => r.id == booking.resourceId,
-    );
-    if (!resource.isActive) {
-      setState(() => error = 'This resource is out of service.');
-      return;
-    }
-    if (count > resource.capacity || (resource.isDesk && count != 1)) {
-      setState(
-        () => error = 'This space allows up to ${resource.capacity} attendees.',
+    setState(() {
+      saving = true;
+      error = null;
+    });
+    try {
+      final updated = await widget.api.updateBooking(
+        booking.id, start: start, end: end, attendees: count,
       );
-      return;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Booking updated. Total: ${updated.totalCost.toStringAsFixed(2)}')),
+      );
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) setState(() => error = e.toString());
+    } finally {
+      if (mounted) setState(() => saving = false);
     }
-
-    final overlaps = sampleBookings.any(
-      (other) =>
-          other.id != booking.id &&
-          other.resourceId == booking.resourceId &&
-          !other.isCancelled &&
-          other.startDateTime.isBefore(end) &&
-          other.endDateTime.isAfter(start),
-    );
-
-    if (overlaps) {
-      setState(() => error = 'This space already has a booking at that time.');
-      return;
-    }
-
-    final hours = end.difference(start).inMinutes / 60;
-    final total = double.parse(
-      (hours * resource.hourlyRate).toStringAsFixed(2),
-    );
-    final index = sampleBookings.indexWhere((item) => item.id == booking.id);
-
-    sampleBookings[index] = Booking(
-      id: booking.id,
-      memberId: booking.memberId,
-      memberName: booking.memberName,
-      resourceId: booking.resourceId,
-      resourceName: booking.resourceName,
-      startDateTime: start,
-      endDateTime: end,
-      attendees: count,
-      status: booking.status,
-      totalCost: total,
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Booking updated. Total: ${total.toStringAsFixed(2)}'),
-      ),
-    );
-    Navigator.pop(context, true);
   }
 
   @override
@@ -172,7 +139,7 @@ class _BookingEditScreenState extends State<BookingEditScreen> {
           ),
           if (error != null) Text(error!),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: save, child: const Text('Save changes')),
+          ElevatedButton(onPressed: saving ? null : save, child: Text(saving ? 'Saving…' : 'Save changes')),
         ],
       ),
     );
