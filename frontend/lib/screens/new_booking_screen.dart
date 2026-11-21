@@ -195,68 +195,126 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final spaces = available;
+
     return Scaffold(
       appBar: AppBar(title: const Text('New booking')),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          DropdownButton<int>(
-            hint: const Text('Select a member'),
-            value: memberId,
-            items: [
-              for (final member in sampleMembers)
-                DropdownMenuItem(
-                  value: member.id,
-                  child: Text(member.fullName),
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Member',
+                  floatingLabelBehavior: FloatingLabelBehavior.always,
                 ),
-            ],
-            onChanged: (id) => setState(() => memberId = id),
-          ),
-          ListTile(
-            title: const Text('Start'),
-            subtitle: Text(formatTime(start)),
-            onTap: () => pickDateTime(isStart: true),
-          ),
-          ListTile(
-            title: const Text('End'),
-            subtitle: Text(formatTime(end)),
-            onTap: () => pickDateTime(isStart: false),
-          ),
-          TextField(
-            controller: attendees,
-            decoration: const InputDecoration(labelText: 'Attendees'),
-            keyboardType: TextInputType.number,
-            onChanged: (_) => setState(resetSearch),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: searchAvailability,
-            child: const Text('Search availability'),
-          ),
-          if (error != null) Text(error!),
-          if (available != null && available!.isEmpty)
-            const Text('No spaces available for this time and group size.'),
-          if (available != null && available!.isNotEmpty)
-            DropdownButton<int>(
-              hint: const Text('Select an available space'),
-              value: resourceId,
-              items: [
-                for (final resource in available!)
-                  DropdownMenuItem(
-                    value: resource.id,
-                    child: Text(
-                      '${resource.name} • ${resource.capacity} seats',
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    isExpanded: true,
+                    hint: const Text('Select a member'),
+                    value: memberId,
+                    items: [
+                      for (final member in sampleMembers)
+                        DropdownMenuItem(
+                          value: member.id,
+                          child: Text(member.fullName),
+                        ),
+                    ],
+                    onChanged: submitting
+                        ? null
+                        : (id) => setState(() => memberId = id),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.calendar_today),
+                title: const Text('Start date and time'),
+                subtitle: Text(formatTime(start)),
+                onTap: submitting ? null : () => pickDateTime(isStart: true),
+              ),
+              ListTile(
+                leading: const Icon(Icons.calendar_today),
+                title: const Text('End date and time'),
+                subtitle: Text(formatTime(end)),
+                onTap: submitting ? null : () => pickDateTime(isStart: false),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: attendees,
+                enabled: !submitting,
+                decoration: const InputDecoration(
+                  labelText: 'Number of attendees',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (_) => setState(resetSearch),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton(
+                onPressed: submitting ? null : searchAvailability,
+                child: const Text('Search availability'),
+              ),
+              if (spaces != null && spaces.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'No spaces available. Try a different time or group size.',
+                  ),
+                ),
+              if (spaces != null && spaces.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'Available space',
+                    floatingLabelBehavior: FloatingLabelBehavior.always,
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      isExpanded: true,
+                      hint: const Text('Select a room or desk'),
+                      value: resourceId,
+                      items: [
+                        for (final resource in spaces)
+                          DropdownMenuItem(
+                            value: resource.id,
+                            child: Text(
+                              '${resource.name} • ${resource.capacity} seats',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                      onChanged: submitting
+                          ? null
+                          : (id) => setState(() => resourceId = id),
                     ),
                   ),
+                ),
               ],
-              onChanged: (id) => setState(() => resourceId = id),
-            ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: submitting ? null : submitBooking,
-            child: Text(submitting ? 'Booking…' : 'Book'),
+              if (error != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Semantics(
+                    liveRegion: true,
+                    child: Text(
+                      error!,
+                      style: TextStyle(color: theme.colorScheme.error),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: submitting ? null : submitBooking,
+                child: Text(submitting ? 'Booking…' : 'Confirm booking'),
+              ),
+              if (submitting) const LinearProgressIndicator(),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

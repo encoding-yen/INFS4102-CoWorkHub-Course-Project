@@ -56,7 +56,9 @@ class _AppShellState extends State<AppShell> {
         children: [
           NavigationRail(
             selectedIndex: selectedIndex,
-            labelType: NavigationRailLabelType.all,
+            labelType: MediaQuery.sizeOf(context).width < 500
+                ? NavigationRailLabelType.none
+                : NavigationRailLabelType.all,
             onDestinationSelected: (index) {
               setState(() {
                 selectedIndex = index;

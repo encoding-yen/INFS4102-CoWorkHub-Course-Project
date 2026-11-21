@@ -56,9 +56,14 @@ class _BookingsScreenState extends State<BookingsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Cancel booking?'),
-        content: Text('Cancel the booking for ${booking.resourceName}?'),
+        content: Text(
+          '${booking.resourceName} • ${booking.memberName}\n'
+          '${formatBookingTime(booking)}\n\n'
+          'The booking will stay in the list as cancelled.',
+        ),
         actions: [
           TextButton(
+            autofocus: true,
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Keep booking'),
           ),
@@ -93,42 +98,79 @@ class _BookingsScreenState extends State<BookingsScreen> {
     showSuccess(context, 'Booking cancelled');
   }
 
+  String formatBookingTime(Booking booking) {
+    final start = booking.startDateTime;
+    final end = booking.endDateTime;
+    final dates = MaterialLocalizations.of(context);
+
+    final startDate = dates.formatShortDate(start);
+    final startTime = TimeOfDay.fromDateTime(start).format(context);
+    final endTime = TimeOfDay.fromDateTime(end).format(context);
+
+    if (DateUtils.isSameDay(start, end)) {
+      return '$startDate · $startTime–$endTime';
+    }
+
+    return '$startDate · $startTime → ${dates.formatShortDate(end)} · $endTime';
+  }
+
   @override
   Widget build(BuildContext context) {
-    // TODO(Jassem): A table with member, resource, start, end, attendees, status, total cost, Edit and Cancel.
-    //               Separate or mark current vs past (Booking.isPast) and cancelled bookings.
     return Scaffold(
       appBar: AppBar(title: const Text('Bookings')),
       body: ListView(
+        padding: const EdgeInsets.all(16),
         children: [
           if (sampleBookings.isEmpty)
-            const ListTile(title: Text('No bookings yet')),
-          for (final booking in sampleBookings)
-            ListTile(
-              title: Text('${booking.resourceName} • ${booking.memberName}'),
+            const ListTile(
+              leading: Icon(Icons.event),
+              title: Text('No bookings yet'),
               subtitle: Text(
-                '${booking.startDateTime} → ${booking.endDateTime}\n'
-                'Attendees: ${booking.attendees} • ${booking.status} • '
-                '${booking.isPast ? "Past" : "Current or upcoming"}',
+                'Select New booking in the sidebar to book a room or desk.',
               ),
-              isThreeLine: true,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Total: ${booking.totalCost.toStringAsFixed(2)}'),
-                  TextButton(
-                    onPressed: booking.isCancelled
-                        ? null
-                        : () => cancelBooking(booking),
-                    child: const Text('Cancel'),
-                  ),
-                  TextButton(
-                    onPressed: booking.isCancelled
-                        ? null
-                        : () => editBooking(booking),
-                    child: const Text('Edit'),
-                  ),
-                ],
+            ),
+          for (final booking in sampleBookings)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      booking.resourceName,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Text('Member: ${booking.memberName}'),
+                    const SizedBox(height: 8),
+                    Text(formatBookingTime(booking)),
+                    Text('Attendees: ${booking.attendees}'),
+                    Text(
+                      'Status: ${booking.isCancelled ? "Cancelled" : "Confirmed"}',
+                    ),
+                    Text(
+                      'Schedule: ${booking.isPast ? "Past" : "Current or upcoming"}',
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Total: ${booking.totalCost.toStringAsFixed(2)}'),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        TextButton(
+                          onPressed: booking.isCancelled
+                              ? null
+                              : () => editBooking(booking),
+                          child: const Text('Edit booking'),
+                        ),
+                        TextButton(
+                          onPressed: booking.isCancelled
+                              ? null
+                              : () => cancelBooking(booking),
+                          child: const Text('Cancel booking'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
         ],

@@ -127,70 +127,123 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // TODO(Jassem): ResourceFilterBar on top; then two sections, Meeting rooms and Desks, each a list or table;
-    //               buttons for New room, New desk, Edit, Delete. OUT_OF_SERVICE should be clearly visible.
-    return Scaffold(
-      body: ListView(
-        children: [
-          Row(
+    final theme = Theme.of(context);
+    final matches = sampleResources.where((resource) {
+      return resource.location.toLowerCase().contains(locationFilter) &&
+          resource.capacity >= minimumSeats &&
+          resource.hourlyRate <= priceLimit &&
+          (typeFilter == null || resource.type == typeFilter);
+    }).toList();
+
+    final rooms = matches.where((r) => !r.isDesk).toList();
+    final desks = matches.where((r) => r.isDesk).toList();
+
+    Widget resourceCard(Resource resource) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextButton(
-                onPressed: () => openForm(newType: 'MEETING_ROOM'),
-                child: const Text('New room'),
+              Text(resource.name, style: theme.textTheme.titleMedium),
+              Text(
+                '${resource.isDesk ? "Desk" : "Meeting room"} • ${resource.location}',
               ),
-              TextButton(
-                onPressed: () => openForm(newType: 'DESK'),
-                child: const Text('New desk'),
+              const SizedBox(height: 8),
+              Text('Capacity: ${resource.capacity}'),
+              Text('Hourly rate: ${resource.hourlyRate.toStringAsFixed(2)}'),
+              Text(
+                'Status: ${resource.isActive ? "Active" : "Out of service"}',
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                children: [
+                  TextButton(
+                    onPressed: () => showDetails(resource),
+                    child: const Text('View details'),
+                  ),
+                  TextButton(
+                    onPressed: () => openForm(resource: resource),
+                    child: const Text('Edit'),
+                  ),
+                  TextButton(
+                    onPressed: () => deleteResource(resource),
+                    child: const Text('Delete'),
+                  ),
+                ],
               ),
             ],
           ),
-          ResourceFilterBar(
-            onApply: ({type, minCapacity, location, maxHourlyRate}) {
-              setState(() {
-                locationFilter = (location ?? '').toLowerCase();
-              });
-              minimumSeats = minCapacity ?? 0;
-              typeFilter = type;
-              priceLimit = maxHourlyRate ?? double.infinity;
-            },
-          ),
-          for (final desksOnly in [false, true]) ...[
-            ListTile(title: Text(desksOnly ? 'Desks' : 'Meeting rooms')),
-            for (final resource in sampleResources.where(
-              (r) =>
-                  r.isDesk == desksOnly &&
-                  r.location.toLowerCase().contains(locationFilter) &&
-                  r.capacity >= minimumSeats &&
-                  (typeFilter == null || r.type == typeFilter) &&
-                  r.hourlyRate <= priceLimit,
-            ))
-              ListTile(
-                title: Text(
-                  '${resource.name} (${resource.isDesk ? "Desk" : "Meeting room"})',
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(resource.status),
-                    IconButton(
-                      icon: const Icon(Icons.edit),
-                      tooltip: 'Edit resource',
-                      onPressed: () => openForm(resource: resource),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline),
-                      tooltip: 'Delete resource',
-                      onPressed: () => deleteResource(resource),
-                    ),
-                  ],
-                ),
-                onTap: () => showDetails(resource),
-                subtitle: Text(
-                  '${resource.location} • Capacity: ${resource.capacity} • ${resource.hourlyRate.toStringAsFixed(2)}/hour',
-                ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Resources')),
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ElevatedButton(
+                    onPressed: () => openForm(newType: 'MEETING_ROOM'),
+                    child: const Text('New room'),
+                  ),
+                  OutlinedButton(
+                    onPressed: () => openForm(newType: 'DESK'),
+                    child: const Text('New desk'),
+                  ),
+                ],
               ),
-          ],
-        ],
+              const SizedBox(height: 16),
+              ResourceFilterBar(
+                onApply: ({type, minCapacity, location, maxHourlyRate}) {
+                  setState(() {
+                    typeFilter = type;
+                    locationFilter = (location ?? '').toLowerCase();
+                    minimumSeats = minCapacity ?? 0;
+                    priceLimit = maxHourlyRate ?? double.infinity;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              if (sampleResources.isEmpty)
+                const ListTile(
+                  title: Text('No resources yet'),
+                  subtitle: Text('Choose New room or New desk to add one.'),
+                )
+              else if (matches.isEmpty)
+                const ListTile(
+                  title: Text('No matching resources'),
+                  subtitle: Text(
+                    'Change your filters or select Clear to see all resources.',
+                  ),
+                ),
+              if (rooms.isNotEmpty) ...[
+                Text(
+                  'Meeting rooms (${rooms.length})',
+                  style: theme.textTheme.titleMedium,
+                ),
+                for (final room in rooms) resourceCard(room),
+              ],
+              if (desks.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'Desks (${desks.length})',
+                  style: theme.textTheme.titleMedium,
+                ),
+                for (final desk in desks) resourceCard(desk),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
