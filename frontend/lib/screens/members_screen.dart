@@ -55,58 +55,93 @@ class _MembersScreenState extends State<MembersScreen> {
     final bookings = sampleBookings
         .where((booking) => booking.memberId == member?.id)
         .toList();
+    final heading = Theme.of(context).textTheme.titleMedium;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Members'),
-        actions: [
-          TextButton(
-            onPressed: () => openForm(),
-            child: const Text('New member'),
+    final memberRows = <Widget>[
+      if (sampleMembers.isEmpty)
+        const ListTile(
+          title: Text('No members yet'),
+          subtitle: Text('Choose New member to add the first member.'),
+        ),
+      for (final item in sampleMembers)
+        ListTile(
+          title: Text(item.fullName),
+          subtitle: Text(item.email),
+          selected: item.id == member?.id,
+          leading: Icon(
+            item.id == member?.id ? Icons.check_circle : Icons.person_outline,
           ),
-        ],
+          onTap: () => selectMember(item),
+          trailing: IconButton(
+            tooltip: 'Edit ${item.fullName}',
+            icon: const Icon(Icons.edit),
+            onPressed: () => openForm(member: item),
+          ),
+        ),
+    ];
+
+    final bookingRows = <Widget>[
+      ListTile(
+        title: Text(
+          member == null
+              ? 'Member bookings'
+              : 'Bookings for ${member.fullName}',
+          style: heading,
+        ),
       ),
-      body: Row(
-        children: [
-          Expanded(
-            child: ListView(
-              children: [
-                for (final item in sampleMembers)
-                  ListTile(
-                    title: Text(item.fullName),
-                    subtitle: Text(item.email),
-                    selected: item.id == member?.id,
-                    onTap: () => selectMember(item),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.edit),
-                      tooltip: 'Edit member',
-                      onPressed: () => openForm(member: item),
-                    ),
-                  ),
-              ],
+      if (member == null)
+        const ListTile(title: Text('Select a member to see their bookings.'))
+      else if (bookings.isEmpty)
+        const ListTile(title: Text('This member has no bookings.'))
+      else
+        for (final booking in bookings)
+          ListTile(
+            title: Text(booking.resourceName),
+            subtitle: Text(
+              '${booking.isCancelled ? "Cancelled" : "Confirmed"}'
+              ' • Total: ${booking.totalCost.toStringAsFixed(2)}',
             ),
           ),
-          const VerticalDivider(width: 1),
-          Expanded(
-            child: member == null
-                ? const Center(child: Text('Select a member to see bookings'))
-                : ListView(
+    ];
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Members')),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ElevatedButton.icon(
+              onPressed: () => openForm(),
+              icon: const Icon(Icons.person_add),
+              label: const Text('New member'),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth < 650) {
+                    return ListView(
+                      children: [
+                        ...memberRows,
+                        const Divider(),
+                        ...bookingRows,
+                      ],
+                    );
+                  }
+
+                  return Row(
                     children: [
-                      ListTile(title: Text('Bookings for ${member.fullName}')),
-                      if (bookings.isEmpty)
-                        const ListTile(title: Text('No bookings')),
-                      for (final booking in bookings)
-                        ListTile(
-                          title: Text(booking.resourceName),
-                          subtitle: Text(booking.status),
-                          trailing: Text(
-                            'Total: ${booking.totalCost.toStringAsFixed(2)}',
-                          ),
-                        ),
+                      Expanded(child: ListView(children: memberRows)),
+                      const VerticalDivider(width: 24),
+                      Expanded(child: ListView(children: bookingRows)),
                     ],
-                  ),
-          ),
-        ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

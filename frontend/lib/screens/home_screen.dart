@@ -6,42 +6,78 @@
 
 import 'package:material_ui/material_ui.dart';
 
+import '../models/sample_data.dart';
 import '../services/api_client.dart';
 
-import '../models/sample_data.dart';
-
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.api});
 
   final ApiClient api;
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  // TODO(Jassem): Hold loading / error / counts in state.
-
-  @override
-  void initState() {
-    super.initState();
-    // TODO(Jassem): Call loadSummary().
-  }
-
-  Future<void> loadSummary() async {
-    // TODO(Jassem): await the three ApiClient lists, count rooms, desks, members, and bookings, then setState.
-    //               Catch ApiException and show its message with ErrorView.
-    throw UnimplementedError('TODO(Jassem): HomeScreen.loadSummary');
+  Widget summaryCard(String label, int count, IconData icon, double width) {
+    return SizedBox(
+      width: width,
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: ListTile(
+          leading: Icon(icon),
+          title: Text(label),
+          subtitle: Text('$count'),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // TODO(Jassem): Show LoadingView, ErrorView, or four summary cards.
-        final roomCount = sampleResources.where((r) => r.type == 'MEETING_ROOM').length;
-        final deskCount = sampleResources.where((r) => r.type == 'DESK').length;
+    final rooms = sampleResources.where((r) => !r.isDesk).length;
+    final desks = sampleResources.where((r) => r.isDesk).length;
 
     return Scaffold(
-      body: Center(child: Text('CoWorkHub Dashboard\nMeeting rooms: $roomCount\nDesks: $deskCount\nMembers: ${sampleMembers.length}\nBookings: ${sampleBookings.length}')),
+      appBar: AppBar(title: const Text('CoWorkHub Dashboard')),
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = constraints.maxWidth;
+                  final cardWidth = width >= 440 ? (width - 12) / 2 : width;
+
+                  return Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      summaryCard(
+                        'Meeting rooms',
+                        rooms,
+                        Icons.business,
+                        cardWidth,
+                      ),
+                      summaryCard('Desks', desks, Icons.computer, cardWidth),
+                      summaryCard(
+                        'Members',
+                        sampleMembers.length,
+                        Icons.people,
+                        cardWidth,
+                      ),
+                      summaryCard(
+                        'Bookings',
+                        sampleBookings.length,
+                        Icons.event,
+                        cardWidth,
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
