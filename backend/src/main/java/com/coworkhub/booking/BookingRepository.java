@@ -42,4 +42,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from BookableResource r where r.id = :resourceId")
     BookableResource lockResourceById(@Param("resourceId") Long resourceId);
+    @Query("select b.resource.id from Booking b where b.id = :bookingId")
+    Long findResourceIdByBookingId(@Param("bookingId") Long bookingId); 
 }
