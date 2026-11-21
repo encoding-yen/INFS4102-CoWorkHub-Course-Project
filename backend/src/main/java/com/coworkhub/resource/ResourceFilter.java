@@ -6,6 +6,7 @@
 package com.coworkhub.resource;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 
 public record ResourceFilter(
         ResourceType type,
@@ -19,6 +20,22 @@ public record ResourceFilter(
         //   minCapacity   resource capacity >= minCapacity
         //   location      resource location contains this text, ignoring case
         //   maxHourlyRate resource hourlyRate <= maxHourlyRate (compare BigDecimal with compareTo)
-        throw new UnsupportedOperationException("TODO(Erin): ResourceFilter.matches");
+        if (type == ResourceType.MEETING_ROOM && !(resource instanceof MeetingRoom)) {
+            return false;
+        }
+        if (type == ResourceType.DESK && !(resource instanceof Desk)) {
+            return false;
+        }
+        if (minCapacity != null && resource.getCapacity() < minCapacity) {
+            return false;
+        }
+        if (location != null && !resource.getLocation().toLowerCase(Locale.ROOT)
+                .contains(location.toLowerCase(Locale.ROOT))) {
+            return false;
+        }
+        if (maxHourlyRate != null && resource.getHourlyRate().compareTo(maxHourlyRate) > 0) {
+            return false;
+        }
+        return true;
     }
 }

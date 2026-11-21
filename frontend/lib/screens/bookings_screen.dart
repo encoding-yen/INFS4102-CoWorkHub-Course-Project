@@ -39,7 +39,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
   }
 
   Future<void> cancelBooking(Booking booking) async {
-    // TODO(Jassem): Confirm, call widget.api.cancelBooking(booking.id), show success, reload.
+    // TODO(Jassem): Call widget.api.cancelBooking(booking.id), show success, reload. Confirmation is optional.
     //               The cancelled booking must still appear in the list with status CANCELLED.
     throw UnimplementedError('TODO(Jassem): BookingsScreen.cancelBooking');
   }
@@ -47,7 +47,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
   @override
   Widget build(BuildContext context) {
     // TODO(Jassem): A table with member, resource, start, end, attendees, status, total cost, Edit and Cancel.
-    //               Separate or mark current vs past (Booking.isPast) and cancelled bookings.
+    //               One list is enough; show dates and status so current, past, and cancelled bookings are clear.
     return const Scaffold(
       body: Center(child: Text('TODO(Jassem): Bookings screen')),
     );

@@ -12,6 +12,7 @@ package com.coworkhub.resource;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -23,6 +24,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class Desk extends BookableResource {
 
+    @NotBlank(message = "Desk type is required.")
     @Column(nullable = false)
     private String deskType;
 

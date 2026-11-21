@@ -34,19 +34,20 @@ class _MembersScreenState extends State<MembersScreen> {
   }
 
   Future<void> selectMember(Member member) async {
-    // TODO(Jassem): await widget.api.getBookings(memberId: member.id) and show them beside the list,
+    // TODO(Jassem): await widget.api.getBookings(memberId: member.id) and display the returned bookings,
     //               with status and total cost, cancelled ones included.
     throw UnimplementedError('TODO(Jassem): MembersScreen.selectMember');
   }
 
   Future<void> openForm({Member? member}) async {
-    // TODO(Jassem): Push MemberFormScreen to create or edit. Reload when it returns true.
+    // TODO(Jassem): Push MemberFormScreen to create a member. Editing is an optional existing API feature.
+    //               Reload when the form returns true.
     throw UnimplementedError('TODO(Jassem): MembersScreen.openForm');
   }
 
   @override
   Widget build(BuildContext context) {
-    // TODO(Jassem): Member list on the left, selected member's bookings on the right, New member button.
+    // TODO(Jassem): Show a member list, the selected member's bookings, and a New member button.
     return const Scaffold(
       body: Center(child: Text("TODO(Jassem): Members screen with a selected member's bookings")),
     );

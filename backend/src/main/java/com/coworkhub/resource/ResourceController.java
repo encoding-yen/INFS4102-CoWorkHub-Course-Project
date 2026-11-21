@@ -9,6 +9,7 @@
 
 package com.coworkhub.resource;
 
+import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -40,33 +41,34 @@ public class ResourceController {
             @RequestParam(required = false) String location,
             @RequestParam(required = false) BigDecimal maxHourlyRate) {
         // TODO(Erin): Build a ResourceFilter from the four parameters and return resourceService.findResources.
-        throw new UnsupportedOperationException("TODO(Erin): GET /api/resources");
+        ResourceFilter filter = new ResourceFilter(type, minCapacity, location, maxHourlyRate);
+        return resourceService.findResources(filter);
     }
 
     @PostMapping("/rooms")
     @ResponseStatus(HttpStatus.CREATED)
-    public MeetingRoom createRoom(@RequestBody RoomRequest request) {
+    public MeetingRoom createRoom(@Valid @RequestBody RoomRequest request) {
         // TODO(Erin): Add @Valid before @RequestBody, then call resourceService.createRoom.
-        throw new UnsupportedOperationException("TODO(Erin): POST /api/resources/rooms");
+        return resourceService.createRoom(request);
     }
 
     @PostMapping("/desks")
     @ResponseStatus(HttpStatus.CREATED)
-    public Desk createDesk(@RequestBody DeskRequest request) {
+    public Desk createDesk(@Valid @RequestBody DeskRequest request) {
         // TODO(Erin): Add @Valid before @RequestBody, then call resourceService.createDesk.
-        throw new UnsupportedOperationException("TODO(Erin): POST /api/resources/desks");
+        return resourceService.createDesk(request);
     }
 
     @PutMapping("/{id}")
-    public BookableResource update(@PathVariable Long id, @RequestBody ResourceUpdateRequest request) {
+    public BookableResource update(@PathVariable Long id, @Valid @RequestBody ResourceUpdateRequest request) {
         // TODO(Erin): Add @Valid, then call resourceService.update. Status 200.
-        throw new UnsupportedOperationException("TODO(Erin): PUT /api/resources/{id}");
+        return resourceService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
         // TODO(Erin): Call resourceService.delete. Status 204 with an empty body, or 409 from the service.
-        throw new UnsupportedOperationException("TODO(Erin): DELETE /api/resources/{id}");
+        resourceService.delete(id);
     }
 }

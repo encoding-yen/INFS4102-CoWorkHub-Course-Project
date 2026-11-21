@@ -30,7 +30,8 @@ class Booking {
 
   bool get isCancelled => status == 'CANCELLED';
 
-  // TODO(Jassem): Decide what counts as a past booking for the bookings screen, for example endDateTime before now.
+  // TODO(Jassem): If the screen needs a past label, compare endDateTime with DateTime.now().
+  //              This is a display helper, not another stored booking status.
   bool get isPast => throw UnimplementedError('TODO(Jassem): Booking.isPast');
 
   factory Booking.fromJson(Map<String, dynamic> json) {
