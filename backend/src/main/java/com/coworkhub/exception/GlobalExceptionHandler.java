@@ -42,8 +42,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException exception) {
         // TODO(Erin): A @Valid body failed. Return 400 with a readable sentence.
-        return ResponseEntity.status(400).body(new ApiError(400, "Bad Request",
-                "Some required fields are missing or invalid."));
+        String message = exception.getBindingResult().getFieldError().getDefaultMessage();
+        return ResponseEntity.status(400).body(new ApiError(400, "Bad Request", message));
     }
 
     @ExceptionHandler({

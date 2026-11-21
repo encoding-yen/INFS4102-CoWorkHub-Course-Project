@@ -75,7 +75,7 @@ Response:
 }
 ```
 
-`fullName` and `email` are required. Trim both. The email must contain `@`. Two members cannot share an email.
+`fullName` and `email` are required. The email must contain `@`. Two members cannot share an email.
 
 ## Resources
 
