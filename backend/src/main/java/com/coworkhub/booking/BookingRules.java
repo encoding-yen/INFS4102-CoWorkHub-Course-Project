@@ -8,7 +8,11 @@
 package com.coworkhub.booking;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDateTime;
+
+import com.coworkhub.exception.BadRequestException;
 
 public final class BookingRules {
 
@@ -20,30 +24,43 @@ public final class BookingRules {
             LocalDateTime existingEnd,
             LocalDateTime newStart,
             LocalDateTime newEnd) {
-        // TODO(Amani): Overlap exists if existingStart < newEnd AND existingEnd > newStart (brief 3.4).
+        // Overlap exists if existingStart < newEnd AND existingEnd > newStart (brief 3.4).
         //              A booking that starts at the exact minute another ends is NOT an overlap.
-        //              The service supplies CONFIRMED bookings only and skips the edited booking's own id.
-        throw new UnsupportedOperationException("TODO(Amani): BookingRules.overlaps");
+        return existingStart.isBefore(newEnd) && existingEnd.isAfter(newStart);
     }
 
     public static BigDecimal calculateTotalCost(BigDecimal hourlyRate, LocalDateTime start, LocalDateTime end) {
-        // TODO(Amani): hourlyRate x minutes / 60, rounded to 2 decimals with RoundingMode.HALF_UP.
+        // hourlyRate x minutes / 60, rounded to 2 decimals with RoundingMode.HALF_UP.
         //              Use Duration.between(start, end).toMinutes(). 40.00 for 90 minutes is 60.00.
         //              Put this pricing rule in your report note.
-        throw new UnsupportedOperationException("TODO(Amani): BookingRules.calculateTotalCost");
+        long minutes = Duration.between(start, end).toMinutes();
+        BigDecimal cost = hourlyRate.multiply(BigDecimal.valueOf(minutes));
+        return cost.divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
     }
+    
 
     public static void validateTimes(LocalDateTime start, LocalDateTime end) {
-        // TODO(Amani): If start or end is null, or start is not before end, throw
+        // If start or end is null, or start is not before end, throw
         //              new BadRequestException("The start time must be before the end time.")
-        throw new UnsupportedOperationException("TODO(Amani): BookingRules.validateTimes");
+        if (start == null || end == null || !start.isBefore(end)) {
+            throw new BadRequestException("The start time must be before the end time.");
+        }
     }
 
     public static void validateAttendees(boolean isDesk, int capacity, Integer attendees) {
-        // TODO(Amani):
+        // 
         //   attendees null or < 1          -> BadRequestException("A booking must have at least one attendee.")
         //   isDesk and attendees != 1       -> BadRequestException("A desk can only be booked for one attendee.")
         //   room and attendees > capacity   -> BadRequestException("The number of attendees exceeds this room's capacity.")
-        throw new UnsupportedOperationException("TODO(Amani): BookingRules.validateAttendees");
+        if (attendees == null || attendees < 1) {
+            throw new BadRequestException("A booking must have at least one attendee.");
+        }
+        if (isDesk && attendees != 1) {
+            throw new BadRequestException("A desk can only be booked for one attendee.");
+        }
+        if (!isDesk && attendees > capacity) {
+            throw new BadRequestException("The number of attendees exceeds this room's capacity.");
+        }
+    
     }
 }

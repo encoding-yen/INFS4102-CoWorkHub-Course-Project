@@ -9,15 +9,18 @@
 
 package com.coworkhub.booking;
 
-import com.coworkhub.resource.BookableResource;
-import com.coworkhub.resource.ResourceType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.coworkhub.resource.BookableResource;
+import com.coworkhub.resource.ResourceFilter;
+import com.coworkhub.resource.ResourceType;
 
 @RestController
 public class AvailabilityController {
@@ -36,8 +39,9 @@ public class AvailabilityController {
             @RequestParam(required = false) Integer minCapacity,
             @RequestParam(required = false) String location,
             @RequestParam(required = false) BigDecimal maxHourlyRate) {
-        // TODO(Amani): Build a ResourceFilter from the four filters and return
+        //  Build a ResourceFilter from the four filters and return
         //              bookingService.findAvailableResources(start, end, filter).
-        throw new UnsupportedOperationException("TODO(Amani): GET /api/resources/available");
+        ResourceFilter filter = new ResourceFilter(type, minCapacity, location, maxHourlyRate);
+        return bookingService.findAvailableResources(start, end, filter);
     }
 }
