@@ -31,6 +31,10 @@ import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,18 +55,25 @@ public abstract class BookableResource {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "Name is required.")
     @Column(nullable = false)
     private String name;
 
+    @NotBlank(message = "Location is required.")
     @Column(nullable = false)
     private String location;
 
+    @NotNull(message = "Capacity is required.")
+    @Min(value = 1, message = "Capacity must be at least 1.")
     @Column(nullable = false)
     private Integer capacity;
 
+    @NotNull(message = "Hourly rate is required.")
+    @DecimalMin(value = "0.00", message = "Hourly rate must be zero or more.")
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal hourlyRate;
 
+    @NotNull(message = "Status is required.")
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ResourceStatus status = ResourceStatus.ACTIVE;
