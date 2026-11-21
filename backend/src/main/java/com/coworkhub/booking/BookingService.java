@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.coworkhub.exception.BadRequestException;
@@ -66,7 +67,7 @@ public class BookingService {
         return toResponseList(bookings);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public BookingResponse create(BookingCreateRequest request) {
         // TODO(Amani): Mark this method @Transactional. In this order:
         // 1. BookingRules.validateTimes(start, end)                              400
@@ -85,6 +86,7 @@ public class BookingService {
 
         // 1. Times (400)
         BookingRules.validateTimes(start, end);
+        bookingRepository.lockResourceById(request.resourceId());
 
         // 2. and 3. Member and resource must exist (404)
         Member member = memberService.findById(request.memberId());
@@ -108,7 +110,7 @@ public class BookingService {
         return BookingResponse.from(saved);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public BookingResponse update(Long id, BookingUpdateRequest request) {
         // TODO(Amani): Mark this method @Transactional. Load the booking (404 "Booking not found.").
         //
@@ -152,6 +154,7 @@ public class BookingService {
         BookingRules.validateTimes(start, end);
 
         BookableResource resource = booking.getResource();
+        bookingRepository.lockResourceById(resource.getId());
         // Pass this booking's id so the overlap check ignores the booking itself.
         checkResourceRules(resource, start, end, request.attendees(), booking.getId());
 
