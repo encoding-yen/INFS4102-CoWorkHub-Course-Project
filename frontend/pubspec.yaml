@@ -1,0 +1,26 @@
+# Owner: Jassem
+# What: Flutter dependencies. material_ui is the official Flutter Material library; http is used only
+#       by Yyan's lib/services/api_client.dart.
+# TODO(Jassem): Add a package only if a screen needs it, for example intl for date formatting.
+
+name: coworkhub
+description: "CoWorkHub desktop client for booking coworking rooms and desks."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.14.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  material_ui: ^1.1.0
+  http: ^1.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

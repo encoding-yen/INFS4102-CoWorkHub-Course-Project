@@ -1,0 +1,31 @@
+# Owner: Yyan
+# What: Starts the server side: PostgreSQL and the Spring Boot backend. The Flutter app runs on the host, not here.
+#       Start with:  docker compose up --build
+# Checklist: starts backend and PostgreSQL; connects them with environment variables;
+#            stores database files on a named volume; uses ddl-auto=update (already set in application.properties);
+#            after docker compose down and up, saved data is still there.
+# Depends on: backend/Dockerfile (Yyan). Variable names come from backend/src/main/resources/application.properties (Erin).
+#
+# TODO(Yyan): Replace this outline with the real file.
+#
+# services:
+#   db:
+#     image: postgres:17
+#     environment: POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD read from .env  (${POSTGRES_DB} etc.)
+#     volumes: a named volume mounted at /var/lib/postgresql/data
+#     healthcheck: pg_isready, so the backend waits until the database accepts connections
+#
+#   backend:
+#     build: ./backend
+#     ports: "8080:8080"
+#     environment:
+#       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
+#       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+#       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+#       H2_CONSOLE_ENABLED: "false"
+#     depends_on: db with condition service_healthy
+#
+# volumes:
+#   the named volume used by db
+#
+# Do not put real passwords in this file. They come from .env, which git ignores.

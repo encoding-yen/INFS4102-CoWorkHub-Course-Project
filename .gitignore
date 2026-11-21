@@ -1,0 +1,21 @@
+# Owner: Yyan
+# What: Keeps generated folders and secrets out of git and out of the submission ZIP.
+# Checklist: .gitignore excludes backend/target/, frontend/build/, frontend/.dart_tool/, and .env
+# TODO(Yyan): Before zipping, confirm none of these paths are inside TeamName_Project.zip.
+
+# Secrets. Only .env.example is committed.
+.env
+
+# Backend build output and the local H2 database file
+backend/target/
+backend/data/
+
+# Flutter build output
+frontend/build/
+frontend/.dart_tool/
+
+# IDE and OS files
+.idea/
+.vscode/
+*.iml
+.DS_Store
