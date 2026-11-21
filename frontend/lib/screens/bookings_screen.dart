@@ -3,12 +3,13 @@
 // Checklist: shows current and past bookings, including cancelled ones, with status and total cost;
 //            a booking can be edited and cancelled from this screen;
 //            loading, success, and error states; list refreshes after edit or cancel.
-// Depends on: ApiClient getBookings, cancelBooking (Yyan); BookingEditScreen. Use sampleBookings until ApiClient works.
+// Depends on: ApiClient getBookings, cancelBooking (Yyan); BookingEditScreen.
 
 import 'package:material_ui/material_ui.dart';
 
 import '../models/booking.dart';
-import '../models/sample_data.dart';
+import '../widgets/loading_view.dart';
+import '../widgets/error_view.dart';
 import '../services/api_client.dart';
 import 'booking_edit_screen.dart';
 import '../widgets/feedback.dart';
@@ -23,17 +24,34 @@ class BookingsScreen extends StatefulWidget {
 }
 
 class _BookingsScreenState extends State<BookingsScreen> {
-  // TODO(Jassem): Hold loading / error / bookings in state.
+  List<Booking> bookings = [];
+  bool loading = true;
+  String? loadError;
+  int requestId = 0;
 
   @override
   void initState() {
     super.initState();
-    // TODO(Jassem): Call loadBookings().
+    loadBookings();
   }
 
   Future<void> loadBookings() async {
-    // TODO(Jassem): await widget.api.getBookings(), then setState.
-    throw UnimplementedError('TODO(Jassem): BookingsScreen.loadBookings');
+    final request = ++requestId;
+    setState(() {
+      loading = true;
+      loadError = null;
+    });
+    try {
+      final result = await widget.api.getBookings();
+      if (!mounted || request != requestId) return;
+      setState(() {
+        bookings = result;
+      });
+    } catch (e) {
+      if (mounted && request == requestId) setState(() => loadError = e.toString());
+    } finally {
+      if (mounted && request == requestId) setState(() => loading = false);
+    }
   }
 
   Future<void> editBooking(Booking booking) async {
@@ -47,7 +65,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
     );
 
     if (mounted && saved == true) {
-      setState(() {});
+      await loadBookings();
     }
   }
 
@@ -77,25 +95,16 @@ class _BookingsScreenState extends State<BookingsScreen> {
 
     if (confirmed != true || !mounted) return;
 
-    final index = sampleBookings.indexWhere((item) => item.id == booking.id);
-    if (index == -1) return;
-
-    setState(() {
-      sampleBookings[index] = Booking(
-        id: booking.id,
-        memberId: booking.memberId,
-        memberName: booking.memberName,
-        resourceId: booking.resourceId,
-        resourceName: booking.resourceName,
-        startDateTime: booking.startDateTime,
-        endDateTime: booking.endDateTime,
-        attendees: booking.attendees,
-        status: 'CANCELLED',
-        totalCost: booking.totalCost,
-      );
-    });
-
-    showSuccess(context, 'Booking cancelled');
+    setState(() => loading = true);
+    try {
+      await widget.api.cancelBooking(booking.id);
+      if (!mounted) return;
+      showSuccess(context, 'Booking cancelled');
+    } catch (e) {
+      if (!mounted) return;
+      showError(context, e.toString());
+    }
+    await loadBookings();
   }
 
   String formatBookingTime(Booking booking) {
@@ -116,12 +125,20 @@ class _BookingsScreenState extends State<BookingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (loading || loadError != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Bookings')),
+        body: loading
+            ? const LoadingView()
+            : ErrorView(message: loadError!, onRetry: loadBookings),
+      );
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('Bookings')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (sampleBookings.isEmpty)
+          if (bookings.isEmpty)
             const ListTile(
               leading: Icon(Icons.event),
               title: Text('No bookings yet'),
@@ -129,7 +146,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                 'Select New booking in the sidebar to book a room or desk.',
               ),
             ),
-          for (final booking in sampleBookings)
+          for (final booking in bookings)
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),

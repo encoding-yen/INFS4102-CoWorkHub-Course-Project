@@ -3,12 +3,13 @@
 // Checklist: members are created and displayed; choosing a member shows that member's bookings;
 //            loading, success, and error states; list refreshes after create or update.
 // Depends on: ApiClient getMembers, getBookings(memberId:) (Yyan); MemberFormScreen.
-//             Use sampleMembers and sampleBookings until ApiClient works.
 
 import 'package:material_ui/material_ui.dart';
 
 import '../models/member.dart';
-import '../models/sample_data.dart';
+import '../widgets/loading_view.dart';
+import '../widgets/error_view.dart';
+import '../models/booking.dart';
 import '../services/api_client.dart';
 import 'member_form_screen.dart';
 
@@ -22,7 +23,43 @@ class MembersScreen extends StatefulWidget {
 }
 
 class _MembersScreenState extends State<MembersScreen> {
-  Member? selectedMember;
+  List<Member> members = [];
+  int? selectedId;
+  List<Booking> memberBookings = [];
+  bool loadingBookings = false;
+  String? bookingsError;
+  int bookingRequest = 0;
+  bool loading = true;
+  String? loadError;
+  int requestId = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    loadMembers();
+  }
+
+  Future<void> loadMembers() async {
+    final request = ++requestId;
+    setState(() {
+      loading = true;
+      loadError = null;
+    });
+    try {
+      final result = await widget.api.getMembers();
+      if (!mounted || request != requestId) return;
+      setState(() {
+        members = result;
+        if (!members.any((member) => member.id == selectedId)) selectedId = null;
+      });
+    } catch (e) {
+      if (mounted && request == requestId) setState(() => loadError = e.toString());
+    } finally {
+      if (mounted && request == requestId) setState(() => loading = false);
+    }
+  }
+
+
   Future<void> openForm({Member? member}) async {
     final saved = await Navigator.push<bool>(
       context,
@@ -33,37 +70,45 @@ class _MembersScreenState extends State<MembersScreen> {
 
     if (!mounted || saved != true) return;
 
-    setState(() {
-      if (member != null && selectedMember?.id == member.id) {
-        selectedMember = sampleMembers.firstWhere((m) => m.id == member.id);
-      }
-    });
+    await loadMembers();
+    if (!mounted) return;
+    final selected = members.where((item) => item.id == selectedId).firstOrNull;
+    if (selected != null && loadError == null) selectMember(selected);
 
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('Member saved')));
   }
 
-  void selectMember(Member member) {
+  Future<void> selectMember(Member member) async {
+    final request = ++bookingRequest;
     setState(() {
-      selectedMember = member;
+      selectedId = member.id;
+      loadingBookings = true;
+      memberBookings = [];
+      bookingsError = null;
     });
+    try {
+      final result = await widget.api.getBookings(memberId: member.id);
+      if (mounted && request == bookingRequest) setState(() => memberBookings = result);
+    } catch (e) {
+      if (mounted && request == bookingRequest) setState(() => bookingsError = e.toString());
+    } finally {
+      if (mounted && request == bookingRequest) setState(() => loadingBookings = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final member = selectedMember;
-    final bookings = sampleBookings
-        .where((booking) => booking.memberId == member?.id)
-        .toList();
+    final member = members.where((item) => item.id == selectedId).firstOrNull;
     final heading = Theme.of(context).textTheme.titleMedium;
 
     final memberRows = <Widget>[
-      if (sampleMembers.isEmpty)
+      if (members.isEmpty)
         const ListTile(
           title: Text('No members yet'),
           subtitle: Text('Choose New member to add the first member.'),
         ),
-      for (final item in sampleMembers)
+      for (final item in members)
         ListTile(
           title: Text(item.fullName),
           subtitle: Text(item.email),
@@ -91,10 +136,14 @@ class _MembersScreenState extends State<MembersScreen> {
       ),
       if (member == null)
         const ListTile(title: Text('Select a member to see their bookings.'))
-      else if (bookings.isEmpty)
+      else if (loadingBookings)
+        const LoadingView()
+      else if (bookingsError != null)
+        ErrorView(message: bookingsError!, onRetry: () => selectMember(member))
+      else if (memberBookings.isEmpty)
         const ListTile(title: Text('This member has no bookings.'))
       else
-        for (final booking in bookings)
+        for (final booking in memberBookings)
           ListTile(
             title: Text(booking.resourceName),
             subtitle: Text(
@@ -104,6 +153,14 @@ class _MembersScreenState extends State<MembersScreen> {
           ),
     ];
 
+    if (loading || loadError != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Members')),
+        body: loading
+            ? const LoadingView()
+            : ErrorView(message: loadError!, onRetry: loadMembers),
+      );
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('Members')),
       body: Padding(

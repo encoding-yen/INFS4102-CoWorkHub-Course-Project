@@ -7,7 +7,6 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../models/member.dart';
-import '../models/sample_data.dart';
 import '../services/api_client.dart';
 
 class MemberFormScreen extends StatefulWidget {
@@ -41,33 +40,35 @@ class _MemberFormScreenState extends State<MemberFormScreen> {
     if (email.isEmpty) return 'Email is required';
     if (!email.contains('@')) return 'Enter a valid email';
 
-    final taken = sampleMembers.any(
-      (m) => m.id != widget.member?.id && m.email.toLowerCase() == email,
-    );
-    return taken ? 'This email is already in use' : null;
+    return null;
   }
 
-  void save() {
-    if (!formKey.currentState!.validate()) return;
+  bool saving = false;
+  String? error;
+
+  Future<void> save() async {
+    if (saving || !formKey.currentState!.validate()) return;
 
     final original = widget.member;
-    final name = nameController.text.trim();
-    final email = emailController.text.trim();
+    final name = nameController.text;
+    final email = emailController.text;
 
-    if (original == null) {
-      // New members are appended in ID order in the sample list.
-      final id = sampleMembers.isEmpty ? 1 : sampleMembers.last.id + 1;
-      sampleMembers.add(Member(id: id, fullName: name, email: email));
-    } else {
-      final index = sampleMembers.indexWhere((m) => m.id == original.id);
-      sampleMembers[index] = Member(
-        id: original.id,
-        fullName: name,
-        email: email,
-      );
+    setState(() {
+      saving = true;
+      error = null;
+    });
+    try {
+      if (original == null) {
+        await widget.api.createMember(fullName: name, email: email);
+      } else {
+        await widget.api.updateMember(original.id, fullName: name, email: email);
+      }
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) setState(() => error = e.toString());
+    } finally {
+      if (mounted) setState(() => saving = false);
     }
-
-    Navigator.pop(context, true);
   }
 
   @override
@@ -93,7 +94,8 @@ class _MemberFormScreenState extends State<MemberFormScreen> {
               validator: validateEmail,
             ),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: save, child: const Text('Save')),
+            if (error != null) Text(error!),
+            ElevatedButton(onPressed: saving ? null : save, child: Text(saving ? 'Saving…' : 'Save')),
           ],
         ),
       ),

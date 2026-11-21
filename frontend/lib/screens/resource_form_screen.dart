@@ -7,7 +7,6 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../models/resource.dart';
-import '../models/sample_data.dart';
 import '../services/api_client.dart';
 
 class ResourceFormScreen extends StatefulWidget {
@@ -45,39 +44,43 @@ class _ResourceFormScreenState extends State<ResourceFormScreen> {
     return (value ?? '').trim().isEmpty ? 'Required' : null;
   }
 
-  void save() {
-    if (!formKey.currentState!.validate()) return;
+  bool saving = false;
+  String? error;
 
-    final id =
-        original?.id ??
-        (sampleResources.fold<int>(
-              0,
-              (highest, item) => item.id > highest ? item.id : highest,
-            ) +
-            1);
+  Future<void> save() async {
+    if (saving || !formKey.currentState!.validate()) return;
 
-    final resource = Resource(
-      id: id,
-      type: type,
-      name: name.trim(),
-      location: location.trim(),
-      capacity: isDesk ? 1 : int.parse(capacity.trim()),
-      hourlyRate: double.parse(rate.trim()),
-      status: status,
-      hasVideoConference: isDesk ? null : video,
-      deskType: isDesk ? deskType.trim() : null,
-    );
-
-    if (original == null) {
-      sampleResources.add(resource);
-    } else {
-      final index = sampleResources.indexWhere((item) => item.id == id);
-      sampleResources[index] = resource;
+    setState(() {
+      saving = true;
+      error = null;
+    });
+    try {
+      final id = original?.id;
+      final seats = int.parse(capacity.trim());
+      final price = double.parse(rate.trim());
+      if (id != null) {
+        await widget.api.updateResource(
+          id, name: name, location: location, capacity: seats, hourlyRate: price,
+          status: status, deskType: isDesk ? deskType : null,
+          hasVideoConference: isDesk ? null : video,
+        );
+      } else if (isDesk) {
+        await widget.api.createDesk(
+          name: name, location: location, hourlyRate: price,
+          deskType: deskType, status: status,
+        );
+      } else {
+        await widget.api.createRoom(
+          name: name, location: location, capacity: seats, hourlyRate: price,
+          hasVideoConference: video, status: status,
+        );
+      }
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) setState(() => error = e.toString());
+    } finally {
+      if (mounted) setState(() => saving = false);
     }
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('${resource.name} saved')));
-    Navigator.pop(context, true);
   }
 
   @override
@@ -161,7 +164,8 @@ class _ResourceFormScreenState extends State<ResourceFormScreen> {
                 onChanged: (value) => setState(() => video = value),
               ),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: save, child: const Text('Save')),
+            if (error != null) Text(error!),
+            ElevatedButton(onPressed: saving ? null : save, child: Text(saving ? 'Saving…' : 'Save')),
           ],
         ),
       ),

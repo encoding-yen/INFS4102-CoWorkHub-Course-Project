@@ -9,9 +9,11 @@
 
 import 'package:material_ui/material_ui.dart';
 
+import '../widgets/loading_view.dart';
+import '../widgets/error_view.dart';
+import '../models/member.dart';
 import '../services/api_client.dart';
 import '../models/resource.dart';
-import '../models/sample_data.dart';
 
 class NewBookingScreen extends StatefulWidget {
   const NewBookingScreen({super.key, required this.api});
@@ -23,6 +25,38 @@ class NewBookingScreen extends StatefulWidget {
 }
 
 class _NewBookingScreenState extends State<NewBookingScreen> {
+  List<Member> members = [];
+  bool loading = true;
+  String? loadError;
+  int requestId = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    loadMembers();
+  }
+
+  Future<void> loadMembers() async {
+    final request = ++requestId;
+    setState(() {
+      loading = true;
+      loadError = null;
+    });
+    try {
+      final result = await widget.api.getMembers();
+      if (!mounted || request != requestId) return;
+      setState(() {
+        members = result;
+      });
+    } catch (e) {
+      if (mounted && request == requestId) setState(() => loadError = e.toString());
+    } finally {
+      if (mounted && request == requestId) setState(() => loading = false);
+    }
+  }
+
+  bool searching = false;
+  int searchId = 0;
   int? memberId;
   DateTime? start;
   DateTime? end;
@@ -39,6 +73,8 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
   }
 
   void resetSearch() {
+    searchId++;
+    searching = false;
     available = null;
     resourceId = null;
     error = null;
@@ -81,42 +117,34 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
     });
   }
 
-  void searchAvailability() {
+  Future<void> searchAvailability() async {
     final from = start;
     final until = end;
     final count = int.tryParse(attendees.text.trim());
 
-    setState(() {
-      resetSearch();
+    setState(resetSearch);
+    if (from == null || until == null || !until.isAfter(from)) {
+      setState(() => error = 'Choose a start time and a later end time.');
+      return;
+    }
+    if (count == null || count < 1) {
+      setState(() => error = 'Enter at least one attendee using a whole number.');
+      return;
+    }
 
-      if (from == null || until == null) {
-        error = 'Choose a start and end time.';
-        return;
-      }
-      if (!until.isAfter(from)) {
-        error = 'End time must be after start time.';
-        return;
-      }
-      if (count == null || count < 1) {
-        error = 'Enter at least one attendee using a whole number.';
-        return;
-      }
-
-      available = sampleResources.where((resource) {
-        if (!resource.isActive || resource.capacity < count) return false;
-        if (resource.isDesk && count != 1) return false;
-
-        final overlaps = sampleBookings.any(
-          (booking) =>
-              booking.resourceId == resource.id &&
-              booking.status == 'CONFIRMED' &&
-              booking.startDateTime.isBefore(until) &&
-              booking.endDateTime.isAfter(from),
-        );
-
-        return !overlaps;
-      }).toList();
-    });
+    final request = searchId;
+    setState(() => searching = true);
+    try {
+      final result = await widget.api.getAvailableResources(
+        start: from, end: until, minCapacity: count,
+      );
+      if (!mounted || request != searchId) return;
+      setState(() => available = result.where((r) => !r.isDesk || count == 1).toList());
+    } catch (e) {
+      if (mounted && request == searchId) setState(() => error = e.toString());
+    } finally {
+      if (mounted && request == searchId) setState(() => searching = false);
+    }
   }
 
   Future<void> submitBooking() async {
@@ -177,10 +205,8 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
       );
     } on ApiException catch (e) {
       if (mounted) setState(() => error = e.message);
-    } on UnimplementedError {
-      if (mounted) {
-        setState(() => error = 'Booking submission is not connected yet.');
-      }
+    } catch (e) {
+      if (mounted) setState(() => error = e.toString());
     } finally {
       if (mounted) setState(() => submitting = false);
     }
@@ -198,6 +224,14 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
     final theme = Theme.of(context);
     final spaces = available;
 
+    if (loading || loadError != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('New booking')),
+        body: loading
+            ? const LoadingView()
+            : ErrorView(message: loadError!, onRetry: loadMembers),
+      );
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('New booking')),
       body: Align(
@@ -207,6 +241,8 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              if (members.isEmpty)
+                const Text('Add a member on the Members screen to create a booking.'),
               InputDecorator(
                 decoration: const InputDecoration(
                   labelText: 'Member',
@@ -218,7 +254,7 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                     hint: const Text('Select a member'),
                     value: memberId,
                     items: [
-                      for (final member in sampleMembers)
+                      for (final member in members)
                         DropdownMenuItem(
                           value: member.id,
                           child: Text(member.fullName),
@@ -256,8 +292,8 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
               ),
               const SizedBox(height: 16),
               OutlinedButton(
-                onPressed: submitting ? null : searchAvailability,
-                child: const Text('Search availability'),
+                onPressed: submitting || searching ? null : searchAvailability,
+                child: Text(searching ? 'Searching…' : 'Search availability'),
               ),
               if (spaces != null && spaces.isEmpty)
                 const Padding(
