@@ -10,7 +10,8 @@
 //
 // TODO(Amani): Read this mapping until you can explain it: which column is the foreign key,
 //              why this side has @JoinColumn, and why the other side uses mappedBy.
-// TODO(Amani): Add validation if you want it here, for example @NotNull on the fields.
+// TODO(Amani): Keep input validation in BookingCreateRequest and business checks in BookingService/BookingRules.
+//              The required entity relationships and non-null database columns are already mapped here.
 // Never return this class from a controller. Return BookingResponse instead, the flat JSON from docs/API.md.
 // Lombok generates the getters, setters, and empty constructor. Do not switch this class to @Data.
 

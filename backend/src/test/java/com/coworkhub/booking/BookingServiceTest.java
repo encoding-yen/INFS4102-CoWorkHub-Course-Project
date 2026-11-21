@@ -3,7 +3,7 @@
 //       Each test runs in a transaction that is rolled back, so tests do not affect each other.
 // Checklist: the automated tests cover each rejection; these results go in the report as testing evidence.
 // Depends on: BookingService (Amani) AND Erin's MemberService/ResourceService being finished.
-//             Write these after Erin pushes her services.
+//             Run these once the services are available in your checkout; disabled tests prove no behavior.
 //
 // Set up data with the autowired repositories: save a Member, a MeetingRoom (capacity 8, 40.00/h, ACTIVE),
 // and a Desk (capacity 1). Then call bookingService and assert on the result or assertThrows.

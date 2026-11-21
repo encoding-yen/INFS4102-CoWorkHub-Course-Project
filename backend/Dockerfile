@@ -9,7 +9,7 @@
 # Stage 1 - build
 #   FROM a JDK 17 image with Maven, for example maven:3.9-eclipse-temurin-17 (or eclipse-temurin:17-jdk + ./mvnw)
 #   WORKDIR /app
-#   COPY pom.xml and download dependencies first so rebuilds are faster (mvn dependency:go-offline)
+#   COPY pom.xml
 #   COPY src
 #   RUN mvn -q -DskipTests package
 #

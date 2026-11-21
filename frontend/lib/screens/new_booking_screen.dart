@@ -1,6 +1,6 @@
 // Owner: Jassem
 // What: Pick dates and times, search availability, choose member and resource, enter attendees, submit.
-//       This is the screen used in the demo for the successful booking AND the rejected overlapping booking.
+//       Demonstrate successful creation here. The normal edit form can demonstrate a rejected overlap.
 // Checklist: collects member, resource, start, end, and attendees; shows resources from the availability search;
 //            stops an end time before the start time or an empty attendee count before sending;
 //            shows the server's error message (for example the 409 overlap message) on screen;
@@ -46,7 +46,7 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
   Future<void> submit() async {
     // TODO(Jassem): Validate, show loading, call widget.api.createBooking.
     //   Success: show "Booking confirmed, total 60.00" using the returned totalCost, then reset the form.
-    //   ApiException: show exception.message clearly. The instructor will try an overlapping booking here.
+    //   ApiException: show exception.message clearly, including an overlap if availability has changed.
     throw UnimplementedError('TODO(Jassem): NewBookingScreen.submit');
   }
 

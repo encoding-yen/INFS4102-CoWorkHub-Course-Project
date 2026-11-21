@@ -5,19 +5,15 @@
 // Depends on: Booking (done).
 //
 // The brief says to add derived query methods only when the application needs them.
-// TODO(Amani): Add the derived queries you use. Suggested names, which Spring turns into SQL automatically:
+// TODO(Amani): Add these two derived queries. Spring turns them into SQL automatically:
 //
 //   List<Booking> findByMember_Id(Long memberId);
 //
-//   // Is there a CONFIRMED booking on this resource with existingStart < newEnd AND existingEnd > newStart?
-//   boolean existsByResource_IdAndStatusAndStartDateTimeBeforeAndEndDateTimeAfter(
-//           Long resourceId, BookingStatus status, LocalDateTime newEnd, LocalDateTime newStart);
+//   List<Booking> findByResource_IdAndStatus(Long resourceId, BookingStatus status);
 //
-//   // Same check while editing, ignoring the booking being edited.
-//   boolean existsByResource_IdAndStatusAndStartDateTimeBeforeAndEndDateTimeAfterAndIdNot(
-//           Long resourceId, BookingStatus status, LocalDateTime newEnd, LocalDateTime newStart, Long bookingId);
-//
-// Note the argument order: StartDateTimeBefore takes newEnd, EndDateTimeAfter takes newStart.
+// BookingService loads CONFIRMED bookings for a resource and loops through them using BookingRules.overlaps.
+// On edit, skip the booking whose id equals the id being edited. Reuse this approach for availability.
+// No separate overlap query or ...AndIdNot query is needed for this basic implementation.
 
 package com.coworkhub.booking;
 

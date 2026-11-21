@@ -25,7 +25,8 @@ class ApiException implements Exception {
 
   factory ApiException.fromResponse(http.Response response) {
     // TODO(Yyan): Decode {"status", "error", "message"} from response.body and keep "message".
-    //             If the body is not that JSON (for example the server is down), use a general sentence.
+    //             If an HTTP response body is not that JSON, use a general sentence.
+    //             Connection failures have no response and are handled by the request methods instead.
     throw UnimplementedError('TODO(Yyan): ApiException.fromResponse');
   }
 
@@ -108,7 +109,8 @@ class ApiClient {
     bool? hasVideoConference,
     String? deskType,
   }) async {
-    // TODO(Yyan): PUT /api/resources/{id}. Send hasVideoConference for a room, deskType for a desk.
+    // TODO(Yyan): PUT /api/resources/{id}. Send all common fields, including status,
+    //             and hasVideoConference for a room or deskType for a desk. Do not send a type change.
     //             Setting status to OUT_OF_SERVICE goes through this method.
     throw UnimplementedError('TODO(Yyan): updateResource');
   }

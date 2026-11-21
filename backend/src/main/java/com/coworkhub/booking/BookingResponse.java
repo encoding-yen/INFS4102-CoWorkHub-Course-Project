@@ -2,6 +2,7 @@
 // What: The flat booking JSON every booking endpoint returns. See docs/API.md, section Bookings.
 //       Returning Booking directly would nest the whole member and resource. This record avoids that.
 // Depends on: Booking (done). Jassem's Booking model and Yyan's ApiClient read these exact field names.
+// BookingService calls from; the controller returns the service result without a second conversion.
 
 package com.coworkhub.booking;
 

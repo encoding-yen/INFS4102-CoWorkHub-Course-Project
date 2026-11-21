@@ -13,7 +13,7 @@ class ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO(Jassem): An error icon, the message, and a Retry button when onRetry is not null.
+    // TODO(Jassem): Show the message as readable text. An icon and Retry button are optional.
     return const Placeholder();
   }
 }

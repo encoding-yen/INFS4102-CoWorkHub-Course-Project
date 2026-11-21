@@ -4,13 +4,9 @@
 // Depends on: BookableResource (done).
 //
 // The brief says to add derived query methods only when the application needs them.
-// TODO(Erin): Choose how filtering works and add only what you use. Either
-//             (a) findAll() and filter the list in ResourceService.findResources, or
-//             (b) derived queries such as
-//                 List<BookableResource> findByCapacityGreaterThanEqual(Integer minCapacity);
-//                 List<BookableResource> findByLocationContainingIgnoreCase(String location);
-//                 List<BookableResource> findByHourlyRateLessThanEqual(BigDecimal maxHourlyRate);
-//             Option (a) is simpler because all four filters are optional and combine with AND.
+// TODO(Erin): Use findAll() and the loop in ResourceService.findResources with ResourceFilter.matches.
+//             All four optional filters combine with AND. No extra derived queries are needed.
+//             This repository handles both subtypes; do not add separate room and desk repositories.
 
 package com.coworkhub.resource;
 

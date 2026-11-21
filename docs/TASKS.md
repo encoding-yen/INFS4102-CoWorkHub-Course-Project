@@ -1,6 +1,6 @@
 # CoWorkHub task index
 
-Every file in the project has a header with its owner, what it does, the checklist items it covers, and what it waits on. Inside the file, each piece of work is marked `TODO(Name)`.
+The application skeleton files have owner headers and `TODO(Name)` comments. Retained TODOs describe implementation responsibilities, including some work already completed; a TODO marker alone does not mean the method is unfinished.
 
 Find your TODOs:
 
@@ -13,14 +13,25 @@ grep -rn "TODO(Yyan)"   .
 
 The shared contract is [API.md](API.md). Field names, paths, status codes, and error messages come from there.
 
-## What is already done
+## Keep the implementation basic
 
-Nobody has to write these, but everyone must be able to explain them in the Q&A.
+- The brief requires the behavior and the controller → service → repository separation, not extra abstraction layers. Use simple checks and loops in the existing classes.
+- Keep one `BookableResourceRepository` for rooms and desks. The existing `findAll()` plus `ResourceFilter.matches` loop handles resource filters; no additional resource queries are needed.
+- Booking overlap uses `BookingRules.overlaps` on confirmed bookings loaded by resource. On edit, skip the booking's own ID. Use the same rule for availability.
+- Use request field annotations and simple service checks. Keep error JSON in `GlobalExceptionHandler` and booking response conversion in `BookingResponse.from` called by the service.
+- Part 5's screen list is a suggested layout. Simple navigation, lists, forms, loading text, and success/error messages are enough. Summary cards, separate details panels, confirmation dialogs, retry buttons, and split lists are optional, not checklist requirements.
+- Member editing is an existing API addition. Creating/listing members and showing their bookings are the brief's minimum member features.
+- JOINED, H2 for local work, Swagger, and the exact URLs/pricing convention are project choices. Keep them simple; PostgreSQL in Docker with persistent storage remains part of the agreed deployment.
+
+## Current backend foundation
+
+This describes the implementation at this update. Everyone must still be able to explain these pieces in the Q&A.
 
 - `backend/pom.xml`, the Maven wrapper, and `application.properties`. The server starts with `./mvnw spring-boot:run`.
 - Database mapping on `Member`, `BookableResource`, `MeetingRoom`, `Desk`, and `Booking`: JOINED inheritance, generated ids, Lombok `@NoArgsConstructor`, `@ManyToOne` and `@JoinColumn` on the booking, `@OneToMany(mappedBy)` on member and resource, and `@JsonIgnore` on the two bookings lists. Lombok `@Getter` and `@Setter` generate the accessors. Use those, never `@Data`, because `@Data` loops through the two-way booking relationship.
-- Route annotations on every controller method. `http://localhost:8080/swagger-ui.html` lists every endpoint. Calling one returns an error until its TODO is done.
-- The exception classes and `ApiError`. The handler methods inside `GlobalExceptionHandler` are still TODO.
+- Member and resource services, controllers, filters, and validation are implemented. Booking and availability endpoints remain TODOs. Swagger lists routes even when their bodies are unfinished.
+- The exception classes, `ApiError`, and `GlobalExceptionHandler` are implemented. Member duplicate checks use the specific email-conflict message; other database failures use a general conflict message.
+- All 57 resource/member curl checks passed against throwaway H2, with temporary SQL fixtures for confirmed and cancelled booking history. Maven passes 12 tests; 22 booking tests remain disabled and are not evidence that booking behavior works. Docker/PostgreSQL persistence still needs verification.
 - Flutter: the `http` package, the macOS network permission, the model fields, sample data, and an app that opens a placeholder window.
 
 ## Order of work and dependencies
@@ -41,7 +52,7 @@ flowchart LR
 
 ### Erin, backend foundation
 
-Nothing blocks Erin. Amani's service waits on steps 1 and 2, so do those first.
+Steps 1–5 below are implemented. Retained TODO comments are useful for review and Q&A. Finish the report note and verify PostgreSQL persistence once Docker works.
 
 1. `exception/GlobalExceptionHandler.java`: all handler bodies. Every 400, 404, and 409 in the project depends on this.
 2. `member/MemberService.findById` and `resource/ResourceService.findById`. Amani's booking code calls both.
@@ -53,16 +64,16 @@ Nothing blocks Erin. Amani's service waits on steps 1 and 2, so do those first.
 
 ### Amani, booking rules and endpoints
 
-1. Start today: `booking/BookingRules.java` and `src/test/.../BookingRulesTest.java`. These need nothing from anyone.
+1. Implement `booking/BookingRules.java` and `src/test/.../BookingRulesTest.java`. The rules can be tested without Spring or a database.
 2. Start today: `booking/BookingRepository.java` derived queries, `BookingResponse.from`, and validation on `BookingCreateRequest`.
-3. After Erin's step 2: `booking/BookingService.java`, then `BookingController.java` and `AvailabilityController.java`.
-4. After Erin's step 1: confirm the 400, 404, and 409 responses with curl.
+3. Use Erin's lookup methods and resource filtering in `booking/BookingService.java`, then wire `BookingController.java` and `AvailabilityController.java`.
+4. Confirm the 400, 404, and 409 responses with curl using the shared error handler.
 5. After step 3: `src/test/.../BookingServiceTest.java`.
 6. Report note: the pricing rule, the status codes, and the test results for the rejected cases.
 
 ### Jassem, Flutter screens
 
-1. Start today: `fromJson` in `lib/models/`, then every screen in `lib/screens/` and every widget in `lib/widgets/`, using `lib/models/sample_data.dart`.
+1. Implement `fromJson` in `lib/models/`, then the required list/form workflows. Use the existing screens and small widgets where useful; sample data can be used while the HTTP client is unfinished.
 2. Start today: the navigation in `lib/main.dart`.
 3. After Yyan's ApiClient works: replace the sample data with ApiClient calls on every screen, add loading, success, and error states, and refresh after each save.
 4. Delete `lib/models/sample_data.dart`.
@@ -90,7 +101,7 @@ Use [DEMO_AND_QA.md](DEMO_AND_QA.md). Each person writes the report section for 
 | POST /api/members returns 201 and a database-generated id | `MemberController.create`, `MemberService.create` |
 | POST of that same email returns 409 | `MemberService.create`, `MemberRepository`, `GlobalExceptionHandler.handleConflict` |
 | GET /api/members lists members | `MemberController.list` |
-| PUT /api/members/{id} updates a member | `MemberController.update`, `MemberService.update` |
+| Existing addition: PUT /api/members/{id} updates a member | `MemberController.update`, `MemberService.update` |
 | POST /api/resources/rooms and /desks return 201 with "type" and the fields | `ResourceController`, `ResourceService.createRoom` and `createDesk`; `type` comes from the `getType()` method in each subclass |
 | GET /api/resources filters by type, minimum capacity, location, maximum price | `ResourceController.list`, `ResourceFilter.matches` |
 | PUT /api/resources/{id} updates, including OUT_OF_SERVICE | `ResourceService.update` |
@@ -98,7 +109,7 @@ Use [DEMO_AND_QA.md](DEMO_AND_QA.md). Each person writes the report section for 
 | DELETE returns 409 with any booking, including cancelled | `ResourceService.delete` |
 | Missing id 404; missing fields 400 with a readable message | `findById` methods, `@Valid`, `GlobalExceptionHandler` |
 | No endlessly nested list of bookings | Done: `@JsonIgnore` on `Member.bookings` and `BookableResource.bookings` |
-| Rows survive a restart with ddl-auto=update | Done: `application.properties` |
+| Rows survive a restart with ddl-auto=update | Configured in `application.properties`; verify with Yyan's persistent PostgreSQL volume |
 | Report note on JOINED and endpoints | Explanation at the top of `BookableResource.java` |
 
 ### Amani
@@ -112,8 +123,8 @@ Use [DEMO_AND_QA.md](DEMO_AND_QA.md). Each person writes the report section for 
 | A desk accepts one attendee only | `BookingRules.validateAttendees` |
 | A room rejects attendees above capacity | `BookingRules.validateAttendees` |
 | Overlapping CONFIRMED bookings return 409 | `BookingRules.overlaps`, `BookingRepository`, `BookingService.create` |
-| Back-to-back booking allowed | `BookingRules.overlaps` |
-| Edit rechecks, ignores itself, recalculates totalCost | `BookingService.update`, `...AndIdNot` query |
+| Back-to-back booking allowed | `BookingRules.overlaps` used by the service |
+| Edit rechecks, skips its own ID, recalculates totalCost | `BookingService.update`, `BookingRules.overlaps` |
 | OUT_OF_SERVICE resource cannot be booked | `BookingService.create` and `update` |
 | Cancel keeps the row and frees the time | `BookingService.update`; only CONFIRMED is checked for overlap |
 | GET /api/bookings shows cancelled bookings | `BookingService.findAll` |
@@ -127,10 +138,10 @@ Use [DEMO_AND_QA.md](DEMO_AND_QA.md). Each person writes the report section for 
 
 | Checklist item | Where |
 |---|---|
-| Home navigation and summary counts | `main.dart`, `home_screen.dart` |
-| Resource list separates rooms and desks with every required field | `resources_screen.dart` |
-| Resource list filters; details can be opened | `resource_filter_bar.dart`, `ResourcesScreen.showDetails` |
-| Create and update a room, a desk, and a member; set OUT_OF_SERVICE | `resource_form_screen.dart`, `member_form_screen.dart` |
+| Simple navigation to the required workflows; summary counts optional | `main.dart`, `home_screen.dart` |
+| Resource list shows type and every required field; one list is enough | `resources_screen.dart` |
+| Resource list filters; show details in the list or form | `resource_filter_bar.dart`, `resources_screen.dart` |
+| Create/update rooms and desks, set OUT_OF_SERVICE, and create members; member editing optional | `resource_form_screen.dart`, `member_form_screen.dart` |
 | Deleting a resource with bookings shows the server's 409 message | `ResourcesScreen.deleteResource` |
 | New booking collects all fields and shows availability results | `new_booking_screen.dart` |
 | Form blocks empty name, empty email, end before start, empty attendees | the validators in each form screen |
@@ -139,7 +150,7 @@ Use [DEMO_AND_QA.md](DEMO_AND_QA.md). Each person writes the report section for 
 | Choosing a member shows that member's bookings | `MembersScreen.selectMember` |
 | Loading, then success or the server's error message | `loading_view.dart`, `error_view.dart`, `feedback.dart` |
 | List refreshes after create, update, or cancel | each screen reloads when its form returns `true` |
-| Ordinary Flutter desktop widgets, no OS-specific code | all of `lib/` |
+| Ordinary Flutter desktop widgets, no unnecessary OS-specific code | all of `lib/`; keep standard desktop runner files |
 
 ### Yyan
 
@@ -200,7 +211,7 @@ Use [DEMO_AND_QA.md](DEMO_AND_QA.md). Each person writes the report section for 
 | Checkpoint | Invalid booking rejected at the backend and shown in Flutter | `BookingService`, `NewBookingScreen.submit`, `feedback.dart` | Amani, Jassem |
 | 4 | Subtype choice documented | separate `/rooms` and `/desks` endpoints; `ResourceController` header and report | Erin |
 | 4 | Every endpoint in the table | `MemberController`, `ResourceController`, `BookingController`, `AvailabilityController` | Erin, Amani |
-| 5 | Dashboard, resources, availability and new booking, bookings, management | `lib/screens/` | Jassem |
+| 5 | Usable navigation and resource/member/booking workflows; the suggested screens may be combined | `lib/screens/` | Jassem |
 | 5 | Dart models map JSON | `lib/models/` | Jassem, Yyan |
 | 5 | HTTP calls in a dedicated client class | `lib/services/api_client.dart` | Yyan |
 | 5 | Future, async, and await | `api_client.dart`, the screen load and save methods | Yyan, Jassem |
