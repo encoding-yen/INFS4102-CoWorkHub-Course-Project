@@ -5,8 +5,8 @@
 //            edit rechecks and ignores itself and recalculates totalCost; cancel keeps the row and frees the slot;
 //            list includes cancelled bookings; memberId filter; availability search.
 // Depends on:
-//   BookingRules (Amani)                       start today
-//   BookingRepository derived queries (Amani)  start today
+//   BookingRules (Amani)                       validates input and calculates the price
+//   BookingRepository derived queries (Amani)  find history and check confirmed overlaps
 //   MemberService.findById (Erin)              loads members or throws 404
 //   ResourceService.findById/findResources (Erin) loads and filters resources
 //   GlobalExceptionHandler (Erin)              builds the shared 400/404/409 responses
@@ -76,7 +76,7 @@ public class BookingService {
         // 5. resource status OUT_OF_SERVICE -> ConflictException("This resource is out of service and cannot be booked.")  409
         // 6. CONFIRMED overlap on this resource -> ConflictException(
         //       "This resource already has a confirmed booking that overlaps the requested time.")              409
-        //    Use findByResource_IdAndStatus(resource id, CONFIRMED), then a loop calling BookingRules.overlaps.
+        //    Use the repository's confirmed-overlap existence query with end, then start.
         // 7. New Booking: member, resource, times, attendees, status CONFIRMED,
         //    totalCost = BookingRules.calculateTotalCost(resource hourlyRate, start, end). Save it.
         // 8. Return BookingResponse.from(saved).
@@ -121,8 +121,8 @@ public class BookingService {
         // Edit, when request.status() is null:
         //   Editing a CANCELLED booking -> BadRequestException("A cancelled booking cannot be edited.") (400).
         //   Run the same checks as create: times, attendees, OUT_OF_SERVICE, overlap.
-        //   For overlap, loop over this resource's CONFIRMED bookings, skip this booking's id,
-        //   and call BookingRules.overlaps on the others. Keep the same member and resource.
+        //   For overlap, use the repository's ...AndIdNot query to exclude this booking's id.
+        //   Keep the same member and resource.
         //   Recalculate totalCost. Save.
         //
         // Return BookingResponse.from(saved).
@@ -135,7 +135,7 @@ public class BookingService {
         // Cancel: the status field is present. The other fields are ignored.
         if (request.status() != null) {
             if (request.status() != BookingStatus.CANCELLED) {
-                throw new BadRequestException("The status can only be changed to CANCELLED.");
+                throw new BadRequestException("Only CANCELLED may be requested as a booking status.");
             }
             booking.setStatus(BookingStatus.CANCELLED);
             Booking cancelled = bookingRepository.save(booking);
@@ -168,7 +168,7 @@ public class BookingService {
         // 1. BookingRules.validateTimes(start, end)   400
         // 2. resourceService.findResources(filter)    Erin's filtered list
         // 3. Keep a resource only when it is ACTIVE and has no CONFIRMED booking overlapping [start, end).
-        //    Loop over findByResource_IdAndStatus(resource id, CONFIRMED) and call BookingRules.overlaps.
+        //    Use the repository's confirmed-overlap existence query with end, then start.
         // 1. Times (400)
         BookingRules.validateTimes(start, end);
 

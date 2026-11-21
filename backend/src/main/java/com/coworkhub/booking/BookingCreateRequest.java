@@ -17,9 +17,9 @@ import java.time.LocalDateTime;
 import jakarta.validation.constraints.NotNull;
 
 public record BookingCreateRequest(
-        @NotNull(message = "The member id is required.") Long memberId,
-        @NotNull(message = "The resource id is required.") Long resourceId,
-        @NotNull(message = "The start time is required.") LocalDateTime startDateTime,
-        @NotNull(message = "The end time is required.") LocalDateTime endDateTime,
-        @NotNull(message = "The number of attendees is required.") Integer attendees) {
+        @NotNull(message = "Member ID is required.") Long memberId,
+        @NotNull(message = "Resource ID is required.") Long resourceId,
+        @NotNull(message = "The start time must be before the end time.") LocalDateTime startDateTime,
+        @NotNull(message = "The start time must be before the end time.") LocalDateTime endDateTime,
+        @NotNull(message = "A booking must have at least one attendee.") Integer attendees) {
 }

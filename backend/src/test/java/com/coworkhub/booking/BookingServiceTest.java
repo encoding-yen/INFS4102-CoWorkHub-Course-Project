@@ -220,7 +220,9 @@ class BookingServiceTest {
         BookingResponse created = bookRoom(time(14, 0), time(15, 30), 4);
 
         BookingUpdateRequest request = new BookingUpdateRequest(null, null, null, BookingStatus.CONFIRMED);
-        assertThrows(BadRequestException.class, () -> bookingService.update(created.id(), request));
+        BadRequestException error = assertThrows(BadRequestException.class,
+                () -> bookingService.update(created.id(), request));
+        assertEquals("Only CANCELLED may be requested as a booking status.", error.getMessage());
     }
 
     @Test
