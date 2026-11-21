@@ -16,11 +16,17 @@
 // No separate overlap query or ...AndIdNot query is needed for this basic implementation.
 
 package com.coworkhub.booking;
-
 import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.coworkhub.resource.BookableResource;
+
+import jakarta.persistence.LockModeType;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByMember_Id(Long memberId);
@@ -32,4 +38,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     // Same check while editing, ignoring the booking being edited.
     boolean existsByResource_IdAndStatusAndStartDateTimeBeforeAndEndDateTimeAfterAndIdNot(
             Long resourceId, BookingStatus status, LocalDateTime newEnd, LocalDateTime newStart, Long bookingId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select r from BookableResource r where r.id = :resourceId")
+    BookableResource lockResourceById(@Param("resourceId") Long resourceId);
 }

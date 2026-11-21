@@ -1,75 +1,102 @@
 // Owner: Amani
 // What: Tests for BookingRules. Plain JUnit, no database, so they run in under a second.
 // Checklist: the automated tests cover each rejection; these results go in the report as testing evidence.
-// Depends on: BookingRules (Amani). START HERE TODAY.
+// Depends on: BookingRules (Amani).
 //
-// Each test is disabled until written. Remove @Disabled, write the body, run ./mvnw test.
-// Use assertTrue/assertFalse/assertEquals and assertThrows(BadRequestException.class, () -> ...).
+// Run with ./mvnw test.
 
 package com.coworkhub.booking;
 
-import org.junit.jupiter.api.Disabled;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
+
+import com.coworkhub.exception.BadRequestException;
 
 class BookingRulesTest {
 
+    // All test times are on 20 November 2026.
+    private LocalDateTime time(int hour, int minute) {
+        return LocalDateTime.of(2026, 11, 20, hour, minute);
+    }
+
     @Test
-    @Disabled("TODO(Amani)")
     void overlappingBookingsAreDetected() {
         // 14:00-15:30 existing, 15:00-16:00 new -> overlaps is true
+        boolean result = BookingRules.overlaps(time(14, 0), time(15, 30), time(15, 0), time(16, 0));
+
+        assertTrue(result);
     }
 
     @Test
-    @Disabled("TODO(Amani)")
     void bookingInsideAnotherIsDetected() {
         // 14:00-17:00 existing, 15:00-16:00 new -> overlaps is true
+        boolean result = BookingRules.overlaps(time(14, 0), time(17, 0), time(15, 0), time(16, 0));
+
+        assertTrue(result);
     }
 
     @Test
-    @Disabled("TODO(Amani)")
     void backToBackBookingsDoNotOverlap() {
         // 14:00-15:30 existing, 15:30-17:00 new -> overlaps is false
+        boolean result = BookingRules.overlaps(time(14, 0), time(15, 30), time(15, 30), time(17, 0));
+
+        assertFalse(result);
     }
 
     @Test
-    @Disabled("TODO(Amani)")
     void ninetyMinutesAtFortyPerHourCostsSixty() {
-        // calculateTotalCost(40.00, 14:00, 15:30) equals 60.00 (compare with compareTo or isEqualByComparingTo)
+        // calculateTotalCost(40.00, 14:00, 15:30) equals 60.00
+        BigDecimal cost = BookingRules.calculateTotalCost(new BigDecimal("40.00"), time(14, 0), time(15, 30));
+
+        // compareTo is used so the test does not depend on the scale of the BigDecimal.
+        assertEquals(0, cost.compareTo(new BigDecimal("60.00")));
     }
 
     @Test
-    @Disabled("TODO(Amani)")
     void endBeforeStartIsRejected() {
         // validateTimes(15:00, 14:00) throws BadRequestException
+        assertThrows(BadRequestException.class,
+                () -> BookingRules.validateTimes(time(15, 0), time(14, 0)));
     }
 
     @Test
-    @Disabled("TODO(Amani)")
     void endEqualToStartIsRejected() {
         // validateTimes(14:00, 14:00) throws BadRequestException
+        assertThrows(BadRequestException.class,
+                () -> BookingRules.validateTimes(time(14, 0), time(14, 0)));
     }
 
     @Test
-    @Disabled("TODO(Amani)")
     void deskAcceptsExactlyOneAttendee() {
         // validateAttendees(true, 1, 1) does not throw
+        assertDoesNotThrow(() -> BookingRules.validateAttendees(true, 1, 1));
     }
 
     @Test
-    @Disabled("TODO(Amani)")
     void deskWithTwoAttendeesIsRejected() {
         // validateAttendees(true, 1, 2) throws BadRequestException
+        assertThrows(BadRequestException.class,
+                () -> BookingRules.validateAttendees(true, 1, 2));
     }
 
     @Test
-    @Disabled("TODO(Amani)")
     void roomOverCapacityIsRejected() {
         // validateAttendees(false, 8, 9) throws BadRequestException
+        assertThrows(BadRequestException.class,
+                () -> BookingRules.validateAttendees(false, 8, 9));
     }
 
     @Test
-    @Disabled("TODO(Amani)")
     void zeroAttendeesIsRejected() {
         // validateAttendees(false, 8, 0) throws BadRequestException
+        assertThrows(BadRequestException.class,
+                () -> BookingRules.validateAttendees(false, 8, 0));
     }
 }
