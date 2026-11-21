@@ -128,10 +128,18 @@ public class BookingService {
         //   Recalculate totalCost. Save.
         //
         // Return BookingResponse.from(saved).
+        Long resourceId = bookingRepository.findResourceIdByBookingId(id);
+        if (resourceId == null) {
+            throw new NotFoundException("Booking not found.");
+        }
+
+        bookingRepository.lockResourceById(resourceId);
+
         Optional<Booking> found = bookingRepository.findById(id);
         if (found.isEmpty()) {
             throw new NotFoundException("Booking not found.");
         }
+
         Booking booking = found.get();
 
         // Cancel: the status field is present. The other fields are ignored.
@@ -154,7 +162,7 @@ public class BookingService {
         BookingRules.validateTimes(start, end);
 
         BookableResource resource = booking.getResource();
-        bookingRepository.lockResourceById(resource.getId());
+  
         // Pass this booking's id so the overlap check ignores the booking itself.
         checkResourceRules(resource, start, end, request.attendees(), booking.getId());
 
