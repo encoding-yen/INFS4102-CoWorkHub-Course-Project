@@ -6,6 +6,8 @@
 
 package com.coworkhub.member;
 
+import com.coworkhub.exception.ConflictException;
+import com.coworkhub.exception.NotFoundException;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -20,13 +22,13 @@ public class MemberService {
 
     public List<Member> findAll() {
         // TODO(Erin): Return every member.
-        throw new UnsupportedOperationException("TODO(Erin): MemberService.findAll");
+        return memberRepository.findAll();
     }
 
     public Member findById(Long id) {
         // TODO(Erin): Return the member, or throw new NotFoundException("Member not found.").
         // Amani's BookingService depends on this exact behaviour for the 404 on a booking.
-        throw new UnsupportedOperationException("TODO(Erin): MemberService.findById");
+        return memberRepository.findById(id).orElseThrow(() -> new NotFoundException("Member not found."));
     }
 
     public Member create(MemberRequest request) {
@@ -34,7 +36,15 @@ public class MemberService {
         // 1. Trim fullName and email.
         // 2. If the email is already used, throw new ConflictException("A member with this email already exists.").
         // 3. Copy the fields into a new Member and save it. The database assigns the id.
-        throw new UnsupportedOperationException("TODO(Erin): MemberService.create");
+        String fullName = request.fullName().trim();
+        String email = request.email().trim();
+        if (memberRepository.existsByEmailIgnoreCase(email)) {
+            throw new ConflictException("A member with this email already exists.");
+        }
+        Member member = new Member();
+        member.setFullName(fullName);
+        member.setEmail(email);
+        return memberRepository.save(member);
     }
 
     public Member update(Long id, MemberRequest request) {
@@ -42,6 +52,14 @@ public class MemberService {
         // 1. Load the member with findById (404 if missing).
         // 2. Trim the fields. If the new email belongs to a different member, throw ConflictException (409).
         // 3. Copy the fields onto the existing member and save it.
-        throw new UnsupportedOperationException("TODO(Erin): MemberService.update");
+        Member member = findById(id);
+        String fullName = request.fullName().trim();
+        String email = request.email().trim();
+        if (memberRepository.existsByEmailIgnoreCaseAndIdNot(email, id)) {
+            throw new ConflictException("A member with this email already exists.");
+        }
+        member.setFullName(fullName);
+        member.setEmail(email);
+        return memberRepository.save(member);
     }
 }
