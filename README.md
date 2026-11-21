@@ -12,7 +12,7 @@ Flutter desktop client, Spring Boot REST API, Spring Data JPA, PostgreSQL, Docke
 
 ## Team
 
-<!-- TODO(Yyan): Full names and student IDs. -->
+<!-- TODO(Yyan): Full names matching the report's contribution table. -->
 
 | Member | Part |
 |---|---|

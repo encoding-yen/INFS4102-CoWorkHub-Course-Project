@@ -3,7 +3,7 @@
 // Checklist: overlap detected; back-to-back allowed; 90 minutes at 40 per hour costs 60.00;
 //            end before start rejected; desk accepts exactly one attendee; room rejects attendees above capacity.
 // Depends on: BadRequestException (Erin, done). Nothing else. START HERE TODAY.
-// Used by: BookingService, once Erin's services exist. Tested by BookingRulesTest.
+// Used by: BookingService for creation, editing, and availability. Tested by BookingRulesTest.
 
 package com.coworkhub.booking;
 
@@ -22,6 +22,7 @@ public final class BookingRules {
             LocalDateTime newEnd) {
         // TODO(Amani): Overlap exists if existingStart < newEnd AND existingEnd > newStart (brief 3.4).
         //              A booking that starts at the exact minute another ends is NOT an overlap.
+        //              The service supplies CONFIRMED bookings only and skips the edited booking's own id.
         throw new UnsupportedOperationException("TODO(Amani): BookingRules.overlaps");
     }
 

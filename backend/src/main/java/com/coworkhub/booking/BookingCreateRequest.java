@@ -4,7 +4,11 @@
 //         "endDateTime": "2026-11-20T15:30:00", "attendees": 4 }
 // Depends on: nothing.
 //
-// TODO(Amani): Add @NotNull to every field, with a readable message, and @Valid in the controller.
+// TODO(Amani): Add @NotNull to every field and @Valid in the controller. Use field constraints only.
+//             Messages: "Member ID is required.", "Resource ID is required.",
+//             "The start time must be before the end time." on both times,
+//             and "A booking must have at least one attendee." on attendees.
+//             BookingRules checks time ordering and attendee limits with simple if statements.
 
 package com.coworkhub.booking;
 

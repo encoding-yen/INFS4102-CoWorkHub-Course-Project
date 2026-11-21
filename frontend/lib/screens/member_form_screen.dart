@@ -1,6 +1,6 @@
 // Owner: Jassem
 // What: Create or edit a member.
-// Checklist: management screens create and update a member; the form stops an empty name or an empty email
+// Checklist: create a member (editing is optional); the form stops a blank name or a blank email
 //            before the request is sent; a duplicate email shows the server's 409 message.
 // Depends on: ApiClient createMember, updateMember (Yyan).
 
@@ -24,12 +24,13 @@ class _MemberFormScreenState extends State<MemberFormScreen> {
   // TODO(Jassem): A Form with a GlobalKey<FormState> and controllers for fullName and email.
 
   String? validateName(String? value) {
-    // TODO(Jassem): 'Name is required' when empty.
+    // TODO(Jassem): 'Full name is required.' when blank. Keep the submitted name without trimming.
     throw UnimplementedError('TODO(Jassem): validateName');
   }
 
   String? validateEmail(String? value) {
-    // TODO(Jassem): 'Email is required' when empty; 'Enter a valid email' when it has no @.
+    // TODO(Jassem): Reject a blank email or an obvious missing @. Keep the submitted value without trimming.
+    //               The backend's @Email check is authoritative; show its error if it rejects the address.
     throw UnimplementedError('TODO(Jassem): validateEmail');
   }
 

@@ -7,9 +7,9 @@
 // Depends on:
 //   BookingRules (Amani)                       start today
 //   BookingRepository derived queries (Amani)  start today
-//   MemberService.findById (Erin)              WAIT until Erin finishes it
-//   ResourceService.findById/findResources (Erin) WAIT until Erin finishes them
-//   GlobalExceptionHandler (Erin)              your 400/404/409 only reach the client after Erin finishes it
+//   MemberService.findById (Erin)              loads members or throws 404
+//   ResourceService.findById/findResources (Erin) loads and filters resources
+//   GlobalExceptionHandler (Erin)              builds the shared 400/404/409 responses
 
 package com.coworkhub.booking;
 
@@ -38,7 +38,8 @@ public class BookingService {
     }
 
     public List<BookingResponse> findAll() {
-        // TODO(Amani): Every booking, CANCELLED included, mapped with BookingResponse.from.
+        // TODO(Amani): Load every booking, CANCELLED included. Use a loop to build the response list
+        //              with BookingResponse.from. The controller returns this list directly.
         throw new UnsupportedOperationException("TODO(Amani): BookingService.findAll");
     }
 
@@ -57,6 +58,7 @@ public class BookingService {
         // 5. resource status OUT_OF_SERVICE -> ConflictException("This resource is out of service and cannot be booked.")  409
         // 6. CONFIRMED overlap on this resource -> ConflictException(
         //       "This resource already has a confirmed booking that overlaps the requested time.")              409
+        //    Use findByResource_IdAndStatus(resource id, CONFIRMED), then a loop calling BookingRules.overlaps.
         // 7. New Booking: member, resource, times, attendees, status CONFIRMED,
         //    totalCost = BookingRules.calculateTotalCost(resource hourlyRate, start, end). Save it.
         // 8. Return BookingResponse.from(saved).
@@ -67,13 +69,16 @@ public class BookingService {
         // TODO(Amani): Mark this method @Transactional. Load the booking (404 "Booking not found.").
         //
         // Cancel, when request.status() is not null:
-        //   status must be CANCELLED, otherwise BadRequestException (400). Set CANCELLED, keep the row,
-        //   do not change the times or attendees. The time slot is free again because only CONFIRMED blocks.
+        //   status must be CANCELLED, otherwise BadRequestException(
+        //       "Only CANCELLED may be requested as a booking status.") (400).
+        //   Set CANCELLED and keep every other field, including totalCost. Ignore edit fields in this request.
+        //   Already CANCELLED can return unchanged. Only CONFIRMED bookings block a time slot.
         //
         // Edit, when request.status() is null:
         //   Editing a CANCELLED booking -> BadRequestException("A cancelled booking cannot be edited.") (400).
         //   Run the same checks as create: times, attendees, OUT_OF_SERVICE, overlap.
-        //   For overlap, IGNORE THIS BOOKING ITSELF (the ...AndIdNot query).
+        //   For overlap, loop over this resource's CONFIRMED bookings, skip this booking's id,
+        //   and call BookingRules.overlaps on the others. Keep the same member and resource.
         //   Recalculate totalCost. Save.
         //
         // Return BookingResponse.from(saved).
@@ -85,6 +90,7 @@ public class BookingService {
         // 1. BookingRules.validateTimes(start, end)   400
         // 2. resourceService.findResources(filter)    Erin's filtered list
         // 3. Keep a resource only when it is ACTIVE and has no CONFIRMED booking overlapping [start, end).
+        //    Loop over findByResource_IdAndStatus(resource id, CONFIRMED) and call BookingRules.overlaps.
         throw new UnsupportedOperationException("TODO(Amani): BookingService.findAvailableResources");
     }
 }

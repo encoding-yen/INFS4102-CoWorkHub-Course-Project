@@ -6,6 +6,7 @@
 //
 // TODO(Erin): Add @NotBlank to fullName, and @NotBlank plus @Email to email, each with a readable message,
 //             for example @NotBlank(message = "Full name is required.").
+//             Use the messages in API.md. Keep the submitted values without trimming.
 
 package com.coworkhub.member;
 

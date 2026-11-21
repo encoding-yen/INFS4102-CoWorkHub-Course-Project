@@ -1,7 +1,7 @@
 // Owner: Jassem
-// What: List of rooms and desks with filters, details, edit, delete, and create.
-// Checklist: separates rooms and desks; shows name, type, location, capacity, hourly rate, ACTIVE/OUT_OF_SERVICE;
-//            can filter; a resource can be opened to see its details;
+// What: List of rooms and desks with filters, edit, delete, and create.
+// Checklist: shows name, type, location, capacity, hourly rate, ACTIVE/OUT_OF_SERVICE;
+//            can filter; required details are visible in the list or form;
 //            deleting a resource that has bookings shows the server's 409 message;
 //            loading, success, and error states; list refreshes after create, update, or delete.
 // Depends on: ApiClient getResources, deleteResource (Yyan); ResourceFormScreen; ResourceFilterBar.
@@ -36,7 +36,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
   }
 
   void showDetails(Resource resource) {
-    // TODO(Jassem): Open a dialog or side panel with every field, including hasVideoConference or deskType.
+    // TODO(Jassem): Optional details dialog. If the list/form already shows the fields, remove this unused helper.
     throw UnimplementedError('TODO(Jassem): ResourcesScreen.showDetails');
   }
 
@@ -46,15 +46,15 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
   }
 
   Future<void> deleteResource(Resource resource) async {
-    // TODO(Jassem): Ask for confirmation, call widget.api.deleteResource, show success and reload.
+    // TODO(Jassem): Call widget.api.deleteResource, show success and reload. A confirmation dialog is optional.
     //               On ApiException show its message, for example the 409 "has bookings" message.
     throw UnimplementedError('TODO(Jassem): ResourcesScreen.deleteResource');
   }
 
   @override
   Widget build(BuildContext context) {
-    // TODO(Jassem): ResourceFilterBar on top; then two sections, Meeting rooms and Desks, each a list or table;
-    //               buttons for New room, New desk, Edit, Delete. OUT_OF_SERVICE should be clearly visible.
+    // TODO(Jassem): Show filters and one list/table with the required fields, including type and status.
+    //               Add New room, New desk, Edit, and Delete actions. Separate subtype sections are unnecessary.
     return const Scaffold(
       body: Center(child: Text('TODO(Jassem): Resources screen')),
     );

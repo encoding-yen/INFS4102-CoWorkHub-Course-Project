@@ -27,7 +27,7 @@ class _ResourceFormScreenState extends State<ResourceFormScreen> {
   //               a hasVideoConference switch for rooms or a deskType field for desks.
 
   String? validateRequired(String? value) {
-    // TODO(Jassem): Return 'Required' when empty, otherwise null.
+    // TODO(Jassem): Return 'Required' when blank, otherwise null. Keep submitted text without trimming.
     throw UnimplementedError('TODO(Jassem): validateRequired');
   }
 

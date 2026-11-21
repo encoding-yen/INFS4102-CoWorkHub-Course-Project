@@ -5,7 +5,7 @@
 // Depends on: BookingService.findAvailableResources; ResourceFilter (Erin, done).
 //
 // This lives in the booking package on purpose. Erin's ResourceController owns the other /api/resources paths.
-// Spring matches the literal path /available before /{id}, so both controllers work together.
+// Both controllers can serve /api/resources because their HTTP method/path mappings are distinct.
 
 package com.coworkhub.booking;
 
