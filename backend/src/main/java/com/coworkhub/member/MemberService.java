@@ -6,6 +6,7 @@
 
 package com.coworkhub.member;
 
+import com.coworkhub.exception.NotFoundException;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -26,7 +27,7 @@ public class MemberService {
     public Member findById(Long id) {
         // TODO(Erin): Return the member, or throw new NotFoundException("Member not found.").
         // Amani's BookingService depends on this exact behaviour for the 404 on a booking.
-        throw new UnsupportedOperationException("TODO(Erin): MemberService.findById");
+        return memberRepository.findById(id).orElseThrow(() -> new NotFoundException("Member not found."));
     }
 
     public Member create(MemberRequest request) {

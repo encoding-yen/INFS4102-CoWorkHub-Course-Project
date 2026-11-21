@@ -7,6 +7,7 @@
 
 package com.coworkhub.resource;
 
+import com.coworkhub.exception.NotFoundException;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -27,7 +28,7 @@ public class ResourceService {
     public BookableResource findById(Long id) {
         // TODO(Erin): Return the resource, or throw new NotFoundException("Resource not found.").
         // Amani's BookingService depends on this exact behaviour for the 404 on a booking.
-        throw new UnsupportedOperationException("TODO(Erin): ResourceService.findById");
+        return resourceRepository.findById(id).orElseThrow(() -> new NotFoundException("Resource not found."));
     }
 
     public MeetingRoom createRoom(RoomRequest request) {
