@@ -17,7 +17,7 @@ The shared contract is [API.md](API.md). Field names, paths, status codes, and e
 
 - The brief requires the behavior and the controller → service → repository separation, not extra abstraction layers. Use simple checks and loops in the existing classes.
 - Keep one `BookableResourceRepository` for rooms and desks. The existing `findAll()` plus `ResourceFilter.matches` loop handles resource filters; no additional resource queries are needed.
-- Booking overlap uses `BookingRules.overlaps` on confirmed bookings loaded by resource. On edit, skip the booking's own ID. Use the same rule for availability.
+- Booking overlap is checked by the repository's derived existence queries, filtering to CONFIRMED bookings. Editing uses `AndIdNot` to exclude its own ID; creation and availability use the other overlap query. `BookingRules.overlaps` expresses the same formula, but is not the production query path.
 - Use request field annotations and simple service checks. Keep error JSON in `GlobalExceptionHandler` and booking response conversion in `BookingResponse.from` called by the service.
 - Part 5's screen list is a suggested layout. Simple navigation, lists, forms, loading text, and success/error messages are enough. Summary cards, separate details panels, confirmation dialogs, retry buttons, and split lists are optional, not checklist requirements.
 - Member editing is an existing API addition. Creating/listing members and showing their bookings are the brief's minimum member features.
@@ -29,9 +29,11 @@ This describes the implementation at this update. Everyone must still be able to
 
 - `backend/pom.xml`, the Maven wrapper, and `application.properties`. The server starts with `./mvnw spring-boot:run`.
 - Database mapping on `Member`, `BookableResource`, `MeetingRoom`, `Desk`, and `Booking`: JOINED inheritance, generated ids, Lombok `@NoArgsConstructor`, `@ManyToOne` and `@JoinColumn` on the booking, `@OneToMany(mappedBy)` on member and resource, and `@JsonIgnore` on the two bookings lists. Lombok `@Getter` and `@Setter` generate the accessors. Use those, never `@Data`, because `@Data` loops through the two-way booking relationship.
-- Member and resource services, controllers, filters, and validation are implemented. Booking and availability endpoints remain TODOs. Swagger lists routes even when their bodies are unfinished.
+- Member, resource, booking, and availability endpoints are implemented. Sequential booking workflows work; the concurrent-booking issue below remains open.
 - The exception classes, `ApiError`, and `GlobalExceptionHandler` are implemented. Member duplicate checks use the specific email-conflict message; other database failures use a general conflict message.
-- All 57 resource/member curl checks passed against throwaway H2, with temporary SQL fixtures for confirmed and cancelled booking history. Maven passes 12 tests; 22 booking tests remain disabled and are not evidence that booking behavior works. Docker/PostgreSQL persistence still needs verification.
+- There are 27 active tests: 15 booking-service tests, 11 resource-service cases, and the application-context test. The 10 placeholders in `BookingRulesTest` are still disabled and need Amani's implementation. Concurrent-booking coverage is also pending.
+- The earlier 57 resource/member curl checks passed against throwaway H2, using temporary SQL fixtures for booking history. Docker/PostgreSQL persistence still needs verification.
+- Open issue for Amani: four simultaneous create requests for the same resource and interval all saved CONFIRMED bookings in three H2 test batches. Protect overlap checking and saving together for create/update, then add concurrent-request regression tests. `@Transactional` alone does not prevent this race (brief 3.4).
 - Flutter: the `http` package, the macOS network permission, the model fields, sample data, and an app that opens a placeholder window.
 
 ## Order of work and dependencies
@@ -64,12 +66,13 @@ Steps 1–5 below are implemented. Retained TODO comments are useful for review 
 
 ### Amani, booking rules and endpoints
 
-1. Implement `booking/BookingRules.java` and `src/test/.../BookingRulesTest.java`. The rules can be tested without Spring or a database.
-2. Start today: `booking/BookingRepository.java` derived queries, `BookingResponse.from`, and validation on `BookingCreateRequest`.
-3. Use Erin's lookup methods and resource filtering in `booking/BookingService.java`, then wire `BookingController.java` and `AvailabilityController.java`.
-4. Confirm the 400, 404, and 409 responses with curl using the shared error handler.
-5. After step 3: `src/test/.../BookingServiceTest.java`.
-6. Report note: the pricing rule, the status codes, and the test results for the rejected cases.
+The booking implementation and service tests are written. The rule tests are still unfinished. Remaining work:
+
+1. Fix concurrent overlap handling in `BookingService`: the overlap check and save must be protected together for creation and editing.
+2. Complete `BookingRulesTest.java` and enable each test once its body is written.
+3. Add regression tests for simultaneous requests. Identical creates for one resource/interval must leave one CONFIRMED booking; the others return 409. Concurrent edits must not create overlapping confirmed bookings either.
+4. Recheck booking/availability HTTP responses and PostgreSQL behavior with Yyan once Docker works.
+5. Report note: the pricing rule, the status codes, and the test results for the rejected cases.
 
 ### Jassem, Flutter screens
 
@@ -122,9 +125,9 @@ Use [DEMO_AND_QA.md](DEMO_AND_QA.md). Each person writes the report section for 
 | Missing member or resource returns 404 | `BookingService.create` calls Erin's `findById` |
 | A desk accepts one attendee only | `BookingRules.validateAttendees` |
 | A room rejects attendees above capacity | `BookingRules.validateAttendees` |
-| Overlapping CONFIRMED bookings return 409 | `BookingRules.overlaps`, `BookingRepository`, `BookingService.create` |
-| Back-to-back booking allowed | `BookingRules.overlaps` used by the service |
-| Edit rechecks, skips its own ID, recalculates totalCost | `BookingService.update`, `BookingRules.overlaps` |
+| Overlapping CONFIRMED bookings return 409; concurrent-request fix still pending | `BookingRepository` overlap queries, `BookingService` |
+| Back-to-back booking allowed | Strict before/after comparisons in `BookingRepository` overlap queries |
+| Edit rechecks, excludes its own ID, recalculates totalCost | `BookingService.update`, repository query ending in `AndIdNot` |
 | OUT_OF_SERVICE resource cannot be booked | `BookingService.create` and `update` |
 | Cancel keeps the row and frees the time | `BookingService.update`; only CONFIRMED is checked for overlap |
 | GET /api/bookings shows cancelled bookings | `BookingService.findAll` |
@@ -202,7 +205,7 @@ Use [DEMO_AND_QA.md](DEMO_AND_QA.md). Each person writes the report section for 
 | 3.3 | Cancel through an update endpoint, keeping history | `BookingService.update`, `BookingsScreen.cancelBooking` | Amani, Jassem |
 | 3.3 | Display current and past bookings | `bookings_screen.dart` | Jassem |
 | 3.3 | Total from rate and duration | `BookingRules.calculateTotalCost` | Amani |
-| 3.4 | No overlapping CONFIRMED bookings; adjacent allowed; exclude self on update | `BookingRules.overlaps`, `BookingRepository` | Amani |
+| 3.4 | No overlapping CONFIRMED bookings; adjacent allowed; exclude self on update | `BookingService`, `BookingRepository` overlap queries; concurrent-request fix pending | Amani |
 | 3.4 | Start before end | `BookingRules.validateTimes` | Amani |
 | 3.4 | Desk one attendee; room within capacity | `BookingRules.validateAttendees` | Amani |
 | 3.4 | OUT_OF_SERVICE cannot be booked | `BookingService` | Amani |

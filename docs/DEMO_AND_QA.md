@@ -25,7 +25,7 @@ Everyone should be able to explain each step from memory.
 2. `frontend/lib/services/api_client.dart`: `createBooking` sends `POST /api/bookings` with JSON.
 3. `backend/.../booking/BookingController.java`: `create` receives the JSON as `BookingCreateRequest`.
 4. `backend/.../booking/BookingService.java`: `create` runs every rule, loads the member and resource, and calculates the price.
-5. `backend/.../booking/BookingRepository.java`: load the resource's confirmed bookings; the service loops through them with `BookingRules.overlaps`, then calls `save` if allowed.
+5. `backend/.../booking/BookingRepository.java`: check for an overlapping CONFIRMED booking with the derived existence query; the service calls `save` if allowed. Editing uses the query ending in `AndIdNot` to exclude the edited booking.
 6. Database: one new row in the `booking` table, with `member_id` and `resource_id` as foreign keys.
 7. Back up the layers: `BookingResponse` is turned into JSON, then `Booking.fromJson` in Dart, then the screen shows the total.
 8. For a rejected booking: `ConflictException` → `GlobalExceptionHandler` → 409 JSON → `ApiException` → error message on screen.

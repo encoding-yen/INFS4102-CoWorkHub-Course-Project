@@ -2,8 +2,9 @@
 // What: The booking rules as plain Java on times and numbers. No database, no Spring.
 // Checklist: overlap detected; back-to-back allowed; 90 minutes at 40 per hour costs 60.00;
 //            end before start rejected; desk accepts exactly one attendee; room rejects attendees above capacity.
-// Depends on: BadRequestException (Erin, done). Nothing else. START HERE TODAY.
-// Used by: BookingService for creation, editing, and availability. Tested by BookingRulesTest.
+// Depends on: BadRequestException. No Spring or database dependencies.
+// Used by: BookingService for time/attendee validation and pricing. Tested by BookingRulesTest.
+// overlaps expresses the same formula as the repository queries used for production overlap checks.
 
 package com.coworkhub.booking;
 
